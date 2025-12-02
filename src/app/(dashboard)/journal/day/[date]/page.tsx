@@ -18,6 +18,10 @@ export default async function JournalDayPage({
         return <div>Error loading journal entry</div>
     }
 
+    if (!res.data) {
+        return <div>No data found</div>
+    }
+
     const { entry, trades } = res.data
 
     // Format date for display
@@ -97,7 +101,7 @@ export default async function JournalDayPage({
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className={`px-2 py-1 rounded text-xs font-bold ${trade.outcome === 'Win' ? 'bg-emerald-500/10 text-emerald-400' :
-                                                        trade.outcome === 'Loss' ? 'bg-red-500/10 text-red-400' : 'bg-zinc-800 text-zinc-400'
+                                                    trade.outcome === 'Loss' ? 'bg-red-500/10 text-red-400' : 'bg-zinc-800 text-zinc-400'
                                                     }`}>
                                                     {trade.outcome}
                                                 </span>
