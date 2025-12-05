@@ -304,9 +304,9 @@ export function AICoachInterface({ initialTrades, initialReports }: AICoachInter
                     <AnimatePresence>
                         {showSuggestions && (
                             <motion.div
-                                initial={{ opacity: 0, height: 0, mb: 0 }}
-                                animate={{ opacity: 1, height: 'auto', mb: 16 }}
-                                exit={{ opacity: 0, height: 0, mb: 0 }}
+                                initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                                animate={{ opacity: 1, height: 'auto', marginBottom: 16 }}
+                                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
                                 className="overflow-hidden"
                             >
                                 <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
