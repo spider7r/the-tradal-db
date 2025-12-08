@@ -230,7 +230,7 @@ async function checkAccountStatus(supabase: any, accountId: string) {
             let dailyPeakBalance = startOfDayBalance
             let runningDailyBalance = startOfDayBalance
 
-            // Trades are already sorted ascending by entry_date
+            // Trades are already sorted ascending by open_time
             dailyTrades.forEach((trade: any) => {
                 runningDailyBalance += (Number(trade.pnl) || 0)
                 if (runningDailyBalance > dailyPeakBalance) {
@@ -289,4 +289,54 @@ async function updateHighWaterMark(supabase: any, userId: string, tradeId?: stri
             .update({ high_water_mark: currentBalance })
             .eq('id', accountId)
     }
+}
+
+export async function importTrades(trades: any[]) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) return { success: false, error: 'Unauthorized' }
+
+    if (!trades || trades.length === 0) {
+        return { success: false, error: 'No trades provided' }
+    }
+
+    // Get the first account (Legacy support for now, ideally UI lets user pick)
+    const { data: accounts } = await supabase
+        .from('accounts')
+        .select('id')
+        .eq('user_id', user.id)
+        .limit(1)
+
+    const accountId = accounts?.[0]?.id
+    if (!accountId) {
+        return { success: false, error: 'No account found. Please create one first.' }
+    }
+
+    // Prepare data for insertion
+    const records = trades.map(t => ({
+        ...t,
+        user_id: user.id,
+        account_id: accountId,
+        mode: 'Live', // Default for now
+        created_at: new Date().toISOString()
+    }))
+
+    const { error } = await supabase
+        .from('trades')
+        .insert(records)
+
+    if (error) {
+        console.error('Error importing trades:', error)
+        return { success: false, error: error.message }
+    }
+
+    // Trigger basic HWM update (simplified for bulk)
+    // For bulk inputs, usually better to recalc everything or skip for performance, 
+    // but let's do a safe update call for the account.
+    await updateHighWaterMark(supabase, user.id, undefined, accountId)
+
+    revalidatePath('/')
+    revalidatePath('/trades')
+    return { success: true, count: records.length }
 }

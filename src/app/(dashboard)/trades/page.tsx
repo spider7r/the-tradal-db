@@ -5,6 +5,7 @@ import { createClient } from '@/utils/supabase/client'
 import { TradesTable } from '@/components/trades/TradesTable'
 import { TradesFilterBar } from '@/components/trades/TradesFilterBar'
 import { TradeDialog } from '@/components/trades/TradeDialog'
+import { ImportTradesDialog } from '@/components/trades/ImportTradesDialog'
 import { useSearchParams } from 'next/navigation'
 
 export default function TradesPage() {
@@ -89,6 +90,7 @@ export default function TradesPage() {
                             </button>
                         ))}
                     </div>
+                    <ImportTradesDialog />
                     <TradeDialog />
                 </div>
             </div>
