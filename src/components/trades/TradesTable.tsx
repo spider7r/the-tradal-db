@@ -165,7 +165,7 @@ export function TradesTable({ trades }: { trades: Trade[] }) {
                                     )}
                                 </td>
                                 <td className="relative whitespace-nowrap py-4 pl-3 pr-6 text-right text-sm font-medium sm:pr-6">
-                                    <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="flex justify-end gap-3 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                                         {trade.status === 'OPEN' && (
                                             <CloseTradeDialog trade={trade} />
                                         )}

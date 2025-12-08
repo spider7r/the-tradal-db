@@ -129,8 +129,8 @@ export function JournalCalendar({ trades, entries }: JournalCalendarProps) {
                 </div>
             </div>
 
-            {/* Calendar Grid */}
-            <div className="grid grid-cols-7 gap-4">
+            {/* Desktop Calendar Grid (Hidden on Mobile) */}
+            <div className="hidden md:grid md:grid-cols-7 md:gap-4">
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
                     <div key={day} className="text-center text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">
                         {day}
@@ -190,6 +190,57 @@ export function JournalCalendar({ trades, entries }: JournalCalendarProps) {
                                 </div>
                             )}
                         </motion.button>
+                    )
+                })}
+            </div>
+
+            {/* Mobile List View (Visible on Mobile) */}
+            <div className="space-y-3 md:hidden">
+                {calendarDays.filter(day => isSameMonth(day, monthStart)).map((day) => {
+                    const { pnl, tradeCount, status } = getDayData(day)
+                    const isToday = isSameDay(day, new Date())
+
+                    // Only show days with trades or today on mobile to save space? 
+                    // Or show all days? Let's show all days but compact.
+
+                    return (
+                        <div
+                            key={day.toString()}
+                            onClick={() => router.push(`/journal/day/${format(day, 'yyyy-MM-dd')}`)}
+                            className={cn(
+                                "flex items-center justify-between p-4 rounded-xl border bg-zinc-900/50",
+                                isToday ? "border-emerald-500/50" : "border-zinc-800/50"
+                            )}
+                        >
+                            <div className="flex items-center gap-4">
+                                <div className={cn(
+                                    "flex flex-col items-center justify-center w-12 h-12 rounded-lg border",
+                                    isToday ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" : "bg-zinc-800/50 border-zinc-700/50 text-zinc-400"
+                                )}>
+                                    <span className="text-[10px] font-bold uppercase">{format(day, 'EEE')}</span>
+                                    <span className="text-xl font-black leading-none">{format(day, 'd')}</span>
+                                </div>
+                                {tradeCount > 0 ? (
+                                    <div>
+                                        <div className={cn(
+                                            "text-lg font-black tracking-tight",
+                                            pnl > 0 ? "text-emerald-400" : pnl < 0 ? "text-red-400" : "text-zinc-400"
+                                        )}>
+                                            {pnl > 0 ? '+' : ''}{pnl.toLocaleString()}
+                                        </div>
+                                        <div className="text-xs font-medium text-zinc-500 uppercase tracking-wide">
+                                            {tradeCount} Trade{tradeCount !== 1 ? 's' : ''}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <span className="text-zinc-600 text-sm font-medium italic">No Entry</span>
+                                )}
+                            </div>
+
+                            {tradeCount > 0 && (
+                                <ChevronRight className="h-5 w-5 text-zinc-600" />
+                            )}
+                        </div>
                     )
                 })}
             </div>
