@@ -114,13 +114,13 @@ export function AchievementCard({ achievement }: AchievementCardProps) {
                                 <div className="h-12 w-12 relative overflow-hidden rounded-lg">
                                     {/* Using standard img tag for html2canvas compatibility */}
                                     <img
-                                        src="http://zainenterprisespakistan.com/wp-content/uploads/2025/11/trading-journal-icon.png"
+                                        src="/favicon.png"
                                         alt="Logo"
                                         className="object-cover w-full h-full"
                                     />
                                 </div>
                                 <h1 className="text-2xl font-bold tracking-tight text-white">
-                                    Trading Journal
+                                    The Tradal
                                 </h1>
                             </div>
                         </div>
@@ -131,7 +131,7 @@ export function AchievementCard({ achievement }: AchievementCardProps) {
                             </div>
 
                             <h1 className="text-5xl font-bold text-white mb-4 tracking-tight">Certificate of Achievement</h1>
-                            <p className="text-xl text-zinc-400 mb-12 uppercase tracking-widest">Trading Journal Pro</p>
+                            <p className="text-xl text-zinc-400 mb-12 uppercase tracking-widest">The Tradal</p>
 
                             <div className="mb-12">
                                 <p className="text-zinc-500 text-lg mb-2">This certifies that</p>
@@ -153,12 +153,12 @@ export function AchievementCard({ achievement }: AchievementCardProps) {
                             <div className="flex flex-col items-end">
                                 <div className="bg-white p-2 rounded-lg mb-2">
                                     <QRCodeCanvas
-                                        value="https://tradingjournalpro.online/"
+                                        value="https://thetradal.com/"
                                         size={80}
                                         level={"H"}
                                     />
                                 </div>
-                                <p className="text-[10px] text-zinc-600 font-mono">VERIFY AT TRADINGJOURNALPRO.ONLINE</p>
+                                <p className="text-[10px] text-zinc-600 font-mono">VERIFY AT THETRADAL.COM</p>
                             </div>
                         </div>
                     </div>

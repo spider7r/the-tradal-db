@@ -26,8 +26,8 @@ export default async function NotesPage() {
     return (
         <div className="h-full flex flex-col space-y-8">
             <div>
-                <h1 className="text-4xl font-black text-white uppercase italic tracking-tight">My Notes</h1>
-                <p className="text-zinc-400 mt-1">Browse and search your daily trading journal</p>
+                <h1 className="text-3xl sm:text-4xl font-black text-white uppercase italic tracking-tight">My Notes</h1>
+                <p className="text-zinc-400 mt-1 text-sm sm:text-base">Browse and search your daily trading journal</p>
             </div>
 
             <div className="flex-1 min-h-0">

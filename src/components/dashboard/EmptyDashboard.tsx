@@ -85,7 +85,7 @@ export function EmptyDashboard() {
                         onClick={() => setShowWizard(true)}
                         className="group relative inline-flex items-center gap-3 px-8 py-4 bg-white text-black rounded-full font-bold text-lg shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_rgba(255,255,255,0.5)] transition-all"
                     >
-                        Initialize Trading Journal
+                        Initialize The Tradal
                         <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                     </motion.button>
                 </div>

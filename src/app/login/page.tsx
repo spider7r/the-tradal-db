@@ -38,7 +38,7 @@ function LoginForm() {
                 {/* Content */}
                 <div className="relative z-10">
                     <div className="flex items-center gap-2">
-                        <img src="/logo.png" alt="TradingJournal Pro" className="h-10 w-auto" />
+                        <img src="/logo.png" alt="The Tradal" className="h-20 w-auto" />
                     </div>
                 </div>
 
@@ -55,7 +55,7 @@ function LoginForm() {
                 </div>
 
                 <div className="relative z-10 flex items-center gap-4 text-sm font-medium text-zinc-500">
-                    <span>© 2024 TradingJournal Pro</span>
+                    <span>© 2024 The Tradal</span>
                 </div>
             </div>
 

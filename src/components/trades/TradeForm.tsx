@@ -97,14 +97,14 @@ export function TradeForm({ accountId, onSuccess }: TradeFormProps) {
                 )}
 
                 {/* Mode Selection */}
-                <div className="grid grid-cols-3 gap-4 p-1 bg-zinc-900/50 rounded-lg border border-zinc-800">
+                <div className="grid grid-cols-3 gap-2 sm:gap-4 p-1 bg-zinc-900/50 rounded-lg border border-zinc-800">
                     {['Live', 'Backtest', 'Paper'].map((m) => (
                         <button
                             key={m}
                             type="button"
                             onClick={() => setMode(m as any)}
                             className={cn(
-                                "py-2 text-sm font-medium rounded-md transition-all",
+                                "py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all",
                                 mode === m
                                     ? "bg-[#00E676] text-black shadow-sm"
                                     : "text-zinc-400 hover:text-white hover:bg-zinc-800"
@@ -126,7 +126,7 @@ export function TradeForm({ accountId, onSuccess }: TradeFormProps) {
                             id="pair"
                             required
                             placeholder="EURUSD"
-                            className="mt-1 block w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-zinc-100 focus:border-[#00E676] focus:outline-none focus:ring-1 focus:ring-[#00E676] sm:text-sm"
+                            className="mt-1 block w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 sm:px-3 py-1.5 sm:py-2 text-zinc-100 focus:border-[#00E676] focus:outline-none focus:ring-1 focus:ring-[#00E676] text-xs sm:text-sm"
                         />
                     </div>
                     <div>
@@ -138,7 +138,7 @@ export function TradeForm({ accountId, onSuccess }: TradeFormProps) {
                             id="direction"
                             value={direction}
                             onChange={(e) => setDirection(e.target.value)}
-                            className="mt-1 block w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-zinc-100 focus:border-[#00E676] focus:outline-none focus:ring-1 focus:ring-[#00E676] sm:text-sm"
+                            className="mt-1 block w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 sm:px-3 py-1.5 sm:py-2 text-zinc-100 focus:border-[#00E676] focus:outline-none focus:ring-1 focus:ring-[#00E676] text-xs sm:text-sm"
                         >
                             <option value="LONG">Long</option>
                             <option value="SHORT">Short</option>
@@ -160,7 +160,7 @@ export function TradeForm({ accountId, onSuccess }: TradeFormProps) {
                         id="strategy"
                         value={selectedStrategy}
                         onChange={(e) => setSelectedStrategy(e.target.value)}
-                        className="mt-1 block w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-zinc-100 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 sm:text-sm"
+                        className="mt-1 block w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 sm:px-3 py-1.5 sm:py-2 text-zinc-100 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-xs sm:text-sm"
                     >
                         <option value="">Select a Strategy (Optional)</option>
                         {strategies.map(s => (
@@ -182,7 +182,7 @@ export function TradeForm({ accountId, onSuccess }: TradeFormProps) {
                             required
                             value={entryPrice}
                             onChange={(e) => setEntryPrice(e.target.value)}
-                            className="mt-1 block w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-zinc-100 focus:border-[#00E676] focus:outline-none focus:ring-1 focus:ring-[#00E676] sm:text-sm"
+                            className="mt-1 block w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 sm:px-3 py-1.5 sm:py-2 text-zinc-100 focus:border-[#00E676] focus:outline-none focus:ring-1 focus:ring-[#00E676] text-xs sm:text-sm"
                         />
                     </div>
                     <div>
@@ -197,7 +197,7 @@ export function TradeForm({ accountId, onSuccess }: TradeFormProps) {
                             required
                             value={stopLoss}
                             onChange={(e) => setStopLoss(e.target.value)}
-                            className="mt-1 block w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-zinc-100 focus:border-[#00E676] focus:outline-none focus:ring-1 focus:ring-[#00E676] sm:text-sm"
+                            className="mt-1 block w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 sm:px-3 py-1.5 sm:py-2 text-zinc-100 focus:border-[#00E676] focus:outline-none focus:ring-1 focus:ring-[#00E676] text-xs sm:text-sm"
                         />
                     </div>
                     <div>
@@ -212,7 +212,7 @@ export function TradeForm({ accountId, onSuccess }: TradeFormProps) {
                             required
                             value={takeProfit}
                             onChange={(e) => setTakeProfit(e.target.value)}
-                            className="mt-1 block w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-zinc-100 focus:border-[#00E676] focus:outline-none focus:ring-1 focus:ring-[#00E676] sm:text-sm"
+                            className="mt-1 block w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 sm:px-3 py-1.5 sm:py-2 text-zinc-100 focus:border-[#00E676] focus:outline-none focus:ring-1 focus:ring-[#00E676] text-xs sm:text-sm"
                         />
                     </div>
                 </div>
@@ -239,7 +239,7 @@ export function TradeForm({ accountId, onSuccess }: TradeFormProps) {
                             id="size"
                             required
                             defaultValue="1.0"
-                            className="mt-1 block w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-zinc-100 focus:border-[#00E676] focus:outline-none focus:ring-1 focus:ring-[#00E676] sm:text-sm"
+                            className="mt-1 block w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 sm:px-3 py-1.5 sm:py-2 text-zinc-100 focus:border-[#00E676] focus:outline-none focus:ring-1 focus:ring-[#00E676] text-xs sm:text-sm"
                         />
                     </div>
                     <div>
@@ -251,7 +251,7 @@ export function TradeForm({ accountId, onSuccess }: TradeFormProps) {
                             id="status"
                             value={status}
                             onChange={(e) => setStatus(e.target.value)}
-                            className="mt-1 block w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-zinc-100 focus:border-[#00E676] focus:outline-none focus:ring-1 focus:ring-[#00E676] sm:text-sm"
+                            className="mt-1 block w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 sm:px-3 py-1.5 sm:py-2 text-zinc-100 focus:border-[#00E676] focus:outline-none focus:ring-1 focus:ring-[#00E676] text-xs sm:text-sm"
                         >
                             <option value="OPEN">Open</option>
                             <option value="CLOSED">Closed</option>
@@ -272,7 +272,7 @@ export function TradeForm({ accountId, onSuccess }: TradeFormProps) {
                                 name="exit_price"
                                 id="exit_price"
                                 required
-                                className="mt-1 block w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-zinc-100 focus:border-[#00E676] focus:outline-none focus:ring-1 focus:ring-[#00E676] sm:text-sm"
+                                className="mt-1 block w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 sm:px-3 py-1.5 sm:py-2 text-zinc-100 focus:border-[#00E676] focus:outline-none focus:ring-1 focus:ring-[#00E676] text-xs sm:text-sm"
                             />
                         </div>
                         <div>
@@ -283,7 +283,7 @@ export function TradeForm({ accountId, onSuccess }: TradeFormProps) {
                                 name="closing_reason"
                                 id="closing_reason"
                                 required
-                                className="mt-1 block w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-zinc-100 focus:border-[#00E676] focus:outline-none focus:ring-1 focus:ring-[#00E676] sm:text-sm"
+                                className="mt-1 block w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 sm:px-3 py-1.5 sm:py-2 text-zinc-100 focus:border-[#00E676] focus:outline-none focus:ring-1 focus:ring-[#00E676] text-xs sm:text-sm"
                             >
                                 <option value="TP">Take Profit</option>
                                 <option value="SL">Stop Loss</option>
@@ -302,7 +302,7 @@ export function TradeForm({ accountId, onSuccess }: TradeFormProps) {
                         name="notes"
                         id="notes"
                         rows={3}
-                        className="mt-1 block w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-zinc-100 focus:border-[#00E676] focus:outline-none focus:ring-1 focus:ring-[#00E676] sm:text-sm"
+                        className="mt-1 block w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 sm:px-3 py-1.5 sm:py-2 text-zinc-100 focus:border-[#00E676] focus:outline-none focus:ring-1 focus:ring-[#00E676] text-xs sm:text-sm"
                     />
                 </div>
 

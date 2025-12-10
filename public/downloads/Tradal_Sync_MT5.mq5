@@ -1,15 +1,15 @@
 //+------------------------------------------------------------------+
-//|                                                     TJP_Sync.mq5 |
-//|                                  Copyright 2024, Trading Journal |
-//|                                   https://app.tradingjournalpro.online |
+//|                                                  Tradal_Sync.mq5 |
+//|                                  Copyright 2025, The Tradal      |
+//|                                         https://thetradal.com    |
 //+------------------------------------------------------------------+
-#property copyright "Trading Journal Pro"
-#property link      "https://app.tradingjournalpro.online"
+#property copyright "Copyright 2025, The Tradal"
+#property link      "https://thetradal.com"
 #property version   "1.00"
 #property strict
 
 // Inputs
-input string InpWebhookUrl = "https://app.tradingjournalpro.online/api/webhooks/sync"; // Webhook URL
+input string InpWebhookUrl = "https://thetradal.com/api/webhooks/sync"; // Webhook URL
 input string InpApiKey     = "PASTE_YOUR_KEY_HERE";                                    // Sync Key from Dashboard
 
 // Global Variables
@@ -20,7 +20,7 @@ int lastHistoryOrders = 0;
 //+------------------------------------------------------------------+
 int OnInit()
   {
-   Print("TJP Sync: Initialized. Waiting for trades...");
+   Print("Tradal Sync: Initialized. Waiting for trades...");
    lastHistoryOrders = HistoryDealsTotal();
    
    // Enable WebRequest
@@ -89,8 +89,8 @@ void SendTradeToWebhook(ulong ticket) {
    int res = WebRequest("POST", InpWebhookUrl, headers, 3000, data, result, resultHeaders);
    
    if (res == 200) {
-      Print("TJP Sync: Trade sent successfully. Ticket: ", ticket);
+      Print("Tradal Sync: Trade sent successfully. Ticket: ", ticket);
    } else {
-      Print("TJP Sync: Failed to send trade. Error: ", GetLastError(), " Status: ", res);
+      Print("Tradal Sync: Failed to send trade. Error: ", GetLastError(), " Status: ", res);
    }
 }

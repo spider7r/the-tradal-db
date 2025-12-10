@@ -40,17 +40,14 @@ export function Sidebar() {
     return (
         <div className="hidden h-full w-60 flex-col border-r border-zinc-800/50 bg-zinc-900/50 backdrop-blur-xl lg:flex">
             <div className="flex h-20 items-center gap-x-3 px-6 border-b border-zinc-800/50">
-                <div className="relative h-8 w-8 overflow-hidden rounded-lg">
+                <div className="relative h-10 w-40 overflow-hidden">
                     <Image
-                        src="http://zainenterprisespakistan.com/wp-content/uploads/2025/11/trading-journal-icon.png"
-                        alt="Logo"
+                        src="/full-logo.png"
+                        alt="The Tradal"
                         fill
-                        className="object-cover"
+                        className="object-contain object-left"
                     />
                 </div>
-                <h1 className="text-lg font-bold tracking-tight bg-gradient-to-r from-[#00E676] to-emerald-500 bg-clip-text text-transparent">
-                    Trading Journal
-                </h1>
             </div>
             <div className="flex flex-1 flex-col gap-y-4 overflow-y-auto px-4 py-6">
                 <nav className="flex flex-1 flex-col">

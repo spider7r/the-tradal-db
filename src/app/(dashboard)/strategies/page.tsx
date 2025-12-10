@@ -37,16 +37,17 @@ export default function StrategiesPage() {
     return (
         <div className="p-8 space-y-8 max-w-7xl mx-auto">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-black text-white tracking-tight">Trading Strategies</h1>
-                    <p className="text-zinc-400 mt-2">Define your edge. Track your rules. Master your craft.</p>
+                    <h1 className="text-3xl sm:text-4xl font-black text-white uppercase italic tracking-tight">Trading Strategies</h1>
+                    <p className="text-zinc-400 mt-1 text-sm sm:text-base">Define your edge. Track your rules. Master your craft.</p>
                 </div>
                 <button
                     onClick={() => setIsCreateOpen(true)}
-                    className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-emerald-500/20"
+                    className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg sm:rounded-xl font-bold transition-all shadow-lg shadow-emerald-500/20 text-sm sm:text-base w-full sm:w-auto"
                 >
-                    <Plus className="h-5 w-5" />
+                    <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
                     <span>New Strategy</span>
                 </button>
             </div>

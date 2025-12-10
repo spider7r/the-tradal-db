@@ -92,16 +92,16 @@ export function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogP
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[600px] bg-[#0A0A0A] border-white/5 text-white p-0 gap-0 overflow-hidden min-h-[500px] flex flex-col">
+            <DialogContent className="sm:max-w-[600px] bg-[#0A0A0A] border-white/5 text-white p-0 gap-0 overflow-hidden min-h-[500px] flex flex-col w-[95vw]">
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 pb-4 border-b border-white/5">
+                <div className="flex items-center justify-between p-4 sm:p-6 pb-2 sm:pb-4 border-b border-white/5">
                     <div className="flex items-center gap-2">
                         {step > 1 && (
                             <Button variant="ghost" size="icon" className="h-8 w-8 -ml-2 text-[#94A3B8] hover:text-white" onClick={handleBack}>
                                 <ChevronLeft className="w-5 h-5" />
                             </Button>
                         )}
-                        <span className="text-sm font-bold text-[#94A3B8]">Step {step} of 4</span>
+                        <span className="text-xs sm:text-sm font-bold text-[#94A3B8]">Step {step} of 4</span>
                     </div>
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-[#94A3B8] hover:text-white" onClick={() => onOpenChange(false)}>
                         <X className="w-5 h-5" />
@@ -119,7 +119,7 @@ export function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogP
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 p-6 overflow-y-auto">
+                <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={step}

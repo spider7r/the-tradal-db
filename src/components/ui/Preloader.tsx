@@ -32,8 +32,8 @@ export function Preloader() {
                     >
                         <div className="relative h-24 w-64 sm:h-32 sm:w-80 max-w-[90vw] overflow-hidden">
                             <Image
-                                src="http://zainenterprisespakistan.com/wp-content/uploads/2025/11/trading-journal-pro-logo-scaled.png"
-                                alt="Trading Journal Pro"
+                                src="/logo.png"
+                                alt="The Tradal"
                                 fill
                                 className="object-contain"
                                 priority

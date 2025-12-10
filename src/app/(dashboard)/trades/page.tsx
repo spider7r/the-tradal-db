@@ -69,14 +69,14 @@ export default function TradesPage() {
 
     return (
         <div className="space-y-8 h-full flex flex-col">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-4xl font-black text-white uppercase italic tracking-tight">Trades</h2>
-                    <p className="text-zinc-400 mt-1">Manage and analyze your trading history</p>
+            <div className="flex flex-col gap-2 md:gap-4 md:flex-row md:items-center md:justify-between">
+                <div className="text-center md:text-left">
+                    <h2 className="text-3xl sm:text-4xl font-black text-white uppercase italic tracking-tight">Trades</h2>
+                    <p className="text-zinc-400 mt-1 text-sm sm:text-base">Manage and analyze your trading history</p>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center justify-center gap-2 md:gap-4 overflow-x-auto pb-2 md:pb-0 no-scrollbar">
                     {/* Mode Toggle */}
-                    <div className="flex items-center gap-1 bg-zinc-900 p-1 rounded-lg border border-zinc-800">
+                    <div className="flex items-center gap-1 bg-zinc-900 p-1 rounded-lg border border-zinc-800 shrink-0">
                         {['Live', 'Backtest', 'Paper'].map((m) => (
                             <button
                                 key={m}
@@ -90,8 +90,10 @@ export default function TradesPage() {
                             </button>
                         ))}
                     </div>
-                    <ImportTradesDialog />
-                    <TradeDialog />
+                    <div className="flex items-center gap-2 shrink-0">
+                        <ImportTradesDialog />
+                        <TradeDialog />
+                    </div>
                 </div>
             </div>
 

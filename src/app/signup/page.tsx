@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { signup } from '@/app/login/actions'
+import { TestimonialCarousel } from '@/components/auth/TestimonialCarousel'
 import { validatePassword, validateEmail } from '@/utils/validation'
 import { Loader2, CheckCircle2, AlertCircle, ArrowRight, User, Phone, Mail, Lock } from 'lucide-react'
 import Link from 'next/link'
@@ -80,39 +81,23 @@ export default function SignupPage() {
                 {/* Content */}
                 <div className="relative z-10">
                     <div className="flex items-center gap-2">
-                        <img src="/logo.png" alt="TradingJournal Pro" className="h-10 w-auto" />
+                        <img src="/logo.png" alt="The Tradal" className="h-20 w-auto" />
                     </div>
                 </div>
 
                 <div className="relative z-10 max-w-lg">
-                    <div className="space-y-6">
-                        <div className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md">
-                            <div className="flex gap-4 mb-4">
-                                <div className="h-2 w-2 rounded-full bg-red-400" />
-                                <div className="h-2 w-2 rounded-full bg-yellow-400" />
-                                <div className="h-2 w-2 rounded-full bg-emerald-400" />
-                            </div>
-                            <p className="text-zinc-300 font-mono text-sm leading-relaxed">
-                                "If you can't measure it, you can't improve it. This platform gave me the data I needed to finally become profitable."
-                            </p>
-                            <div className="mt-4 flex items-center gap-3">
-                                <div className="h-8 w-8 rounded-full bg-zinc-700" />
-                                <div>
-                                    <p className="text-xs font-bold text-white">Alex M.</p>
-                                    <p className="text-[10px] text-zinc-500">Professional Forex Trader</p>
-                                </div>
-                            </div>
-                        </div>
-
+                    <div className="space-y-12">
                         <h1 className="text-4xl font-black tracking-tighter leading-[1.1]">
                             Start your journey to <br />
                             <span className="text-emerald-400">Consistent Profit</span>
                         </h1>
+
+                        <TestimonialCarousel />
                     </div>
                 </div>
 
                 <div className="relative z-10 flex items-center gap-4 text-sm font-medium text-zinc-500">
-                    <span>© 2024 TradingJournal Pro</span>
+                    <span>© 2024 The Tradal</span>
                 </div>
             </div>
 

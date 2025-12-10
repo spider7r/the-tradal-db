@@ -14,12 +14,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Trading Journal Pro",
-  description: "Your automated trading accountability partner",
+  title: "The Tradal - Advanced AI Trading Journal",
+  description: "Your automated trading accountability partner. Track, analyze, and improve your trading performance with The Tradal.",
   icons: {
-    icon: "http://zainenterprisespakistan.com/wp-content/uploads/2025/11/trading-journal-icon.png",
-    shortcut: "http://zainenterprisespakistan.com/wp-content/uploads/2025/11/trading-journal-icon.png",
-    apple: "http://zainenterprisespakistan.com/wp-content/uploads/2025/11/trading-journal-icon.png",
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
   },
 };
 

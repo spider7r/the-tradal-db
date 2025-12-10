@@ -38,8 +38,8 @@ export default async function JournalPage({
     return (
         <div className="h-full flex flex-col space-y-6">
             <div>
-                <h1 className="text-2xl font-bold tracking-tight text-white">Trading Journal</h1>
-                <p className="text-zinc-400">Review your daily performance and notes</p>
+                <h1 className="text-3xl sm:text-4xl font-black text-white uppercase italic tracking-tight">The Tradal Journal</h1>
+                <p className="text-zinc-400 mt-1 text-sm sm:text-base">Review your daily performance and notes</p>
             </div>
 
             <div className="flex-1 min-h-0">

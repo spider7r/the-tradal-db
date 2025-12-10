@@ -105,9 +105,9 @@ export function ImportTradesDialog() {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" className="gap-2">
+                <Button variant="outline" className="gap-2 px-2 sm:px-4">
                     <FileSpreadsheet className="w-4 h-4" />
-                    Import CSV
+                    <span className="hidden sm:inline">Import CSV</span>
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[600px] h-[600px] flex flex-col bg-slate-950 border-slate-800/50">
@@ -153,7 +153,6 @@ export function ImportTradesDialog() {
                             </div>
                         </div>
                     )}
-
                     {/* STEP 3: PREVIEW */}
                     {step === 3 && (
                         <div className="space-y-4">
@@ -189,10 +188,11 @@ export function ImportTradesDialog() {
                                         ))}
                                     </tbody>
                                 </table>
-                            </div>
-                        </div>
-                    )}
-                </div>
+                            </div >
+                        </div >
+                    )
+                    }
+                </div >
 
                 <div className="flex justify-between pt-4 border-t border-slate-800">
                     <Button variant="ghost" onClick={() => step > 1 && setStep(step - 1 as any)} disabled={step === 1}>
@@ -211,8 +211,8 @@ export function ImportTradesDialog() {
                         </Button>
                     )}
                 </div>
-            </DialogContent>
-        </Dialog>
+            </DialogContent >
+        </Dialog >
     )
 }
 

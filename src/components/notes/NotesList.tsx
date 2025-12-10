@@ -107,7 +107,7 @@ export function NotesList({ entries, trades }: NotesListProps) {
 
                     <button
                         onClick={() => setSelectedDate(new Date())}
-                        className="flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-2.5 text-sm font-black text-white uppercase tracking-wide transition-all hover:bg-emerald-500 hover:scale-105 shadow-lg shadow-emerald-500/20"
+                        className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 sm:px-6 text-xs sm:text-sm font-black text-white uppercase tracking-wide transition-all hover:bg-emerald-500 hover:scale-105 shadow-lg shadow-emerald-500/20 whitespace-nowrap"
                     >
                         <Plus className="h-4 w-4" />
                         Write Note
@@ -159,8 +159,8 @@ export function NotesList({ entries, trades }: NotesListProps) {
 
             {/* All Notes Grid */}
             <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <h3 className="text-xl font-black text-white uppercase italic tracking-tight">All Notes</h3>
+                <div className="flex flex-col gap-3 items-center sm:flex-row sm:justify-between">
+                    <h3 className="text-xl font-black text-white uppercase italic tracking-tight text-center sm:text-left">All Notes</h3>
                     {/* Mood Filter Inline */}
                     <div className="flex items-center gap-3">
                         <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Filter by mood</span>

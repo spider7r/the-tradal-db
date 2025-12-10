@@ -26,7 +26,7 @@ export function AICoachInterface({ initialTrades, initialReports }: AICoachInter
         {
             id: 'welcome',
             role: 'assistant',
-            content: "Hello! I'm TJP Buddy, your AI trading assistant. I can analyze your trades, provide psychological tips, or discuss market concepts. How can I help you today?",
+            content: "Hello! I'm Tradal Buddy, your AI trading assistant. I can analyze your trades, provide psychological tips, or discuss market concepts. How can I help you today?",
             timestamp: new Date()
         }
     ])
@@ -153,11 +153,11 @@ export function AICoachInterface({ initialTrades, initialReports }: AICoachInter
                     <div className="flex items-center gap-4">
                         <div className={`p-2.5 rounded-2xl bg-gradient-to-br ${currentMode.gradient} border border-white/5 shadow-lg relative group`}>
                             <div className="absolute inset-0 rounded-2xl bg-current opacity-0 group-hover:opacity-10 transition-opacity" style={{ color: currentMode.color }} />
-                            <img src="/logo.svg" alt="AI Avatar" className="h-6 w-6" />
+                            <img src="/favicon.png" alt="AI Avatar" className="h-6 w-6" />
                         </div>
                         <div>
                             <h2 className="text-xl font-black text-white uppercase italic tracking-tight flex items-center gap-2">
-                                TJP Buddy
+                                Tradal Buddy
                                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 font-bold uppercase tracking-wider border border-zinc-700">
                                     v1.0
                                 </span>
@@ -229,7 +229,7 @@ export function AICoachInterface({ initialTrades, initialReports }: AICoachInter
                                 {msg.role === 'user' ? (
                                     <User className="h-5 w-5 text-zinc-400" />
                                 ) : (
-                                    <img src="/logo.svg" alt="AI" className="h-6 w-6" />
+                                    <img src="/favicon.png" alt="AI" className="h-6 w-6" />
                                 )}
                             </div>
 
@@ -286,7 +286,7 @@ export function AICoachInterface({ initialTrades, initialReports }: AICoachInter
                             className="flex gap-4 max-w-4xl mx-auto w-full"
                         >
                             <div className="flex-shrink-0 h-10 w-10 rounded-full bg-zinc-900 border flex items-center justify-center shadow-lg" style={{ borderColor: `${currentMode.color}40` }}>
-                                <img src="/logo.svg" alt="AI" className="h-6 w-6 animate-pulse" />
+                                <img src="/favicon.png" alt="AI" className="h-6 w-6 animate-pulse" />
                             </div>
                             <div className="bg-zinc-950 border border-zinc-800 p-4 rounded-3xl rounded-tl-none flex items-center gap-1.5">
                                 <span className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: currentMode.color, animationDelay: '0ms' }} />

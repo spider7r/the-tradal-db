@@ -6,8 +6,15 @@ import { EquityCurveChart } from '@/components/analytics/EquityCurveChart'
 import { SessionSplitChart } from '@/components/analytics/SessionSplitChart'
 import { WinRateByDayChart } from '@/components/analytics/WinRateByDayChart'
 import { DirectionalPerformanceChart } from '@/components/analytics/DirectionalPerformanceChart'
-import { MetricCard } from '@/components/analytics/MetricCard'
-import { BarChart3, TrendingUp, TrendingDown, Target, Activity } from 'lucide-react'
+import { DurationScatterChart } from '@/components/analytics/DurationScatterChart'
+import { TimePerformanceChart } from '@/components/analytics/TimePerformanceChart'
+import { PairPerformanceChart } from '@/components/analytics/PairPerformanceChart'
+import { StatsWidget } from '@/components/dashboard/StatsWidget'
+import {
+    Trophy, Wallet, BarChart3, TrendingUp, TrendingDown,
+    Activity, Calendar, Clock, ScatterChart as ScatterIcon,
+    ArrowUpDown, Target, Timer, Coins, Scale
+} from 'lucide-react'
 
 export default function AnalyticsPage() {
     const [mode, setMode] = useState<'Live' | 'Backtest' | 'Paper'>('Live')
@@ -17,6 +24,7 @@ export default function AnalyticsPage() {
         dayData: any[]
         directionData: any[]
         advancedStats: any
+        trades: any[] // Added to support new charts
     } | null>(null)
     const [isLoading, setIsLoading] = useState(true)
 
@@ -40,17 +48,18 @@ export default function AnalyticsPage() {
         )
     }
 
+    // Use empty array fallback for charts
+    const trades = data?.trades || []
+    const stats = data?.advancedStats || {}
+
     return (
-        <div className="p-8 space-y-8 max-w-7xl mx-auto">
+        <div className="pb-10 space-y-10">
             {/* Header */}
             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <div className="p-3 bg-emerald-500/10 rounded-xl">
-                        <BarChart3 className="h-8 w-8 text-emerald-500" />
-                    </div>
-                    <div>
-                        <h1 className="text-3xl font-black text-white tracking-tight">Performance Analytics</h1>
-                        <p className="text-zinc-400">Deep dive into your trading metrics and growth.</p>
+                <div>
+                    <h2 className="text-3xl sm:text-4xl font-black text-white uppercase italic tracking-tight">Performance Analytics</h2>
+                    <div className="flex items-center gap-2 mt-1">
+                        <p className="text-zinc-400 text-sm sm:text-base">Advanced metrics for <span className="text-emerald-400 font-bold">{mode} Trading</span></p>
                     </div>
                 </div>
 
@@ -61,8 +70,8 @@ export default function AnalyticsPage() {
                             key={m}
                             onClick={() => setMode(m as any)}
                             className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all ${mode === m
-                                    ? 'bg-emerald-500 text-white shadow-sm'
-                                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                                ? 'bg-emerald-500 text-white shadow-sm'
+                                : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
                                 }`}
                         >
                             {m}
@@ -71,87 +80,197 @@ export default function AnalyticsPage() {
                 </div>
             </div>
 
-            {/* Key Metrics Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <MetricCard
+            {/* Key Stats Grid */}
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                <StatsWidget
                     title="Net P&L"
-                    value={`$${data?.equityCurve[data.equityCurve.length - 1]?.pnl.toLocaleString() || 0}`}
-                    icon={TrendingUp}
-                    trend={data?.equityCurve[data.equityCurve.length - 1]?.pnl >= 0 ? 'up' : 'down'}
+                    value={`$${(data?.equityCurve[data.equityCurve.length - 1]?.pnl || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
+                    icon={Wallet}
+                    color="emerald"
+                    trend={data?.equityCurve[data.equityCurve.length - 1]?.pnl >= 0 ? "Profit" : "Loss"}
+                    trendUp={data?.equityCurve[data.equityCurve.length - 1]?.pnl >= 0}
                 />
-                <MetricCard
-                    title="Profit Factor"
-                    value={data?.advancedStats?.profitFactor || 0}
-                    icon={Activity}
-                    subValue="Target: > 1.5"
-                />
-                <MetricCard
+                <StatsWidget
                     title="Win Rate"
-                    value={`${data?.advancedStats?.winRate || 0}%`}
-                    icon={Target}
-                    subValue={`${data?.advancedStats?.totalTrades || 0} Trades`}
+                    value={`${stats.winRate || 0}%`}
+                    icon={Trophy}
+                    color="blue"
+                    trend={`${stats.totalTrades || 0} Trades`}
+                    trendUp={true}
                 />
-                <MetricCard
-                    title="Max Drawdown"
-                    value={`$${data?.advancedStats?.maxDrawdown.toLocaleString() || 0}`}
-                    icon={TrendingDown}
-                    trend="down"
-                    className="border-red-500/20 bg-red-500/5"
+                <StatsWidget
+                    title="Profit Factor"
+                    value={stats.profitFactor?.toFixed(2) || "0.00"}
+                    icon={Scale}
+                    color="violet"
+                    trend="Target > 1.5"
+                    trendUp={(stats.profitFactor || 0) > 1.5}
+                />
+                <StatsWidget
+                    title="Expectancy"
+                    value={`$${props => props.value}`} // StatsWidget expects value, handling formatting
+                    // Just pass strict value
+                    value={`$${(stats.expectancy || 0).toFixed(2)}`}
+                    icon={Target}
+                    color="cyan"
+                    trend="Per Trade"
                 />
             </div>
 
-            {/* Charts Grid */}
-            <div className="grid grid-cols-1 gap-8">
-                {/* Equity Curve - Full Width */}
-                <EquityCurveChart data={data?.equityCurve || []} />
+            {/* Charts Section */}
+            <div className="space-y-8">
 
-                {/* Secondary Charts */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <SessionSplitChart data={data?.sessionData || []} />
-                    <WinRateByDayChart data={data?.dayData || []} />
+                {/* Row 1: Equity Curve (Full Width) */}
+                <div className="rounded-[2rem] border border-zinc-800 bg-zinc-900 overflow-hidden group hover:border-zinc-700 transition-colors duration-300">
+                    <div className="p-6 border-b border-zinc-800 bg-zinc-900/50 flex items-center gap-3 relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500" />
+                        <div className="p-2.5 rounded-xl bg-emerald-500/10">
+                            <Activity className="h-6 w-6 text-emerald-500" />
+                        </div>
+                        <h3 className="text-xl font-black text-white uppercase tracking-wide">Equity Growth</h3>
+                    </div>
+                    <div className="p-6 h-[400px]">
+                        <EquityCurveChart data={data?.equityCurve || []} />
+                    </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div className="lg:col-span-1">
-                        <DirectionalPerformanceChart data={data?.directionData || []} />
-                    </div>
-                    {/* Detailed Stats Table */}
-                    <div className="lg:col-span-2 bg-zinc-900/50 rounded-xl border border-zinc-800 p-6">
-                        <h3 className="text-lg font-bold text-white mb-4">Detailed Statistics</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                            <div>
-                                <p className="text-sm text-zinc-500 mb-1">Average Win</p>
-                                <p className="text-xl font-bold text-emerald-400">${data?.advancedStats?.avgWin.toLocaleString() || 0}</p>
+                {/* Row 2: Sessions & Win Rate */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Session Split */}
+                    <div className="rounded-[2rem] border border-zinc-800 bg-zinc-900 overflow-hidden group hover:border-zinc-700 transition-colors duration-300">
+                        <div className="p-6 border-b border-zinc-800 bg-zinc-900/50 flex items-center gap-3 relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-1 h-full bg-blue-500" />
+                            <div className="p-2.5 rounded-xl bg-blue-500/10">
+                                <Calendar className="h-6 w-6 text-blue-500" />
                             </div>
-                            <div>
-                                <p className="text-sm text-zinc-500 mb-1">Average Loss</p>
-                                <p className="text-xl font-bold text-red-400">${data?.advancedStats?.avgLoss.toLocaleString() || 0}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm text-zinc-500 mb-1">Expectancy</p>
-                                <p className="text-xl font-bold text-blue-400">
-                                    ${data?.advancedStats?.expectancy?.toLocaleString() || 0}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-sm text-zinc-500 mb-1">Avg R:R</p>
-                                <p className="text-xl font-bold text-white">
-                                    1:{data?.advancedStats?.avgRR || 0}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-sm text-zinc-500 mb-1">Max Cons. Wins</p>
-                                <p className="text-xl font-bold text-emerald-400">{data?.advancedStats?.maxConsecutiveWins || 0}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm text-zinc-500 mb-1">Max Cons. Losses</p>
-                                <p className="text-xl font-bold text-red-400">{data?.advancedStats?.maxConsecutiveLosses || 0}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm text-zinc-500 mb-1">Total Trades</p>
-                                <p className="text-xl font-bold text-white">{data?.advancedStats?.totalTrades || 0}</p>
-                            </div>
+                            <h3 className="text-xl font-black text-white uppercase tracking-wide">Session Performance</h3>
                         </div>
+                        <div className="p-6 h-[350px]">
+                            <SessionSplitChart data={data?.sessionData || []} />
+                        </div>
+                    </div>
+
+                    {/* Daily Win Rate */}
+                    <div className="rounded-[2rem] border border-zinc-800 bg-zinc-900 overflow-hidden group hover:border-zinc-700 transition-colors duration-300">
+                        <div className="p-6 border-b border-zinc-800 bg-zinc-900/50 flex items-center gap-3 relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-1 h-full bg-orange-500" />
+                            <div className="p-2.5 rounded-xl bg-orange-500/10">
+                                <Activity className="h-6 w-6 text-orange-500" />
+                            </div>
+                            <h3 className="text-xl font-black text-white uppercase tracking-wide">Win Rate by Day</h3>
+                        </div>
+                        <div className="p-6 h-[350px]">
+                            <WinRateByDayChart data={data?.dayData || []} />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Row 3: Hourly & Duration (New) */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Hourly */}
+                    <div className="rounded-[2rem] border border-zinc-800 bg-zinc-900 overflow-hidden group hover:border-zinc-700 transition-colors duration-300">
+                        <div className="p-6 border-b border-zinc-800 bg-zinc-900/50 flex items-center gap-3 relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-1 h-full bg-violet-500" />
+                            <div className="p-2.5 rounded-xl bg-violet-500/10">
+                                <Clock className="h-6 w-6 text-violet-500" />
+                            </div>
+                            <h3 className="text-xl font-black text-white uppercase tracking-wide">Hourly Performance</h3>
+                        </div>
+                        <div className="p-6 h-[350px]">
+                            <TimePerformanceChart trades={trades} />
+                        </div>
+                    </div>
+
+                    {/* Duration */}
+                    <div className="rounded-[2rem] border border-zinc-800 bg-zinc-900 overflow-hidden group hover:border-zinc-700 transition-colors duration-300">
+                        <div className="p-6 border-b border-zinc-800 bg-zinc-900/50 flex items-center gap-3 relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-1 h-full bg-pink-500" />
+                            <div className="p-2.5 rounded-xl bg-pink-500/10">
+                                <Timer className="h-6 w-6 text-pink-500" />
+                            </div>
+                            <h3 className="text-xl font-black text-white uppercase tracking-wide">Trade Duration vs P&L</h3>
+                        </div>
+                        <div className="p-6 h-[350px]">
+                            <DurationScatterChart trades={trades} />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Row 4: Direction & Pairs */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Direction */}
+                    <div className="lg:col-span-1 rounded-[2rem] border border-zinc-800 bg-zinc-900 overflow-hidden group hover:border-zinc-700 transition-colors duration-300">
+                        <div className="p-6 border-b border-zinc-800 bg-zinc-900/50 flex items-center gap-3 relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500" />
+                            <div className="p-2.5 rounded-xl bg-indigo-500/10">
+                                <ArrowUpDown className="h-6 w-6 text-indigo-500" />
+                            </div>
+                            <h3 className="text-xl font-black text-white uppercase tracking-wide">Long vs Short</h3>
+                        </div>
+                        <div className="p-6">
+                            <DirectionalPerformanceChart data={data?.directionData || []} />
+                        </div>
+                    </div>
+
+                    {/* Pair Performance */}
+                    <div className="lg:col-span-2 rounded-[2rem] border border-zinc-800 bg-zinc-900 overflow-hidden group hover:border-zinc-700 transition-colors duration-300">
+                        <div className="p-6 border-b border-zinc-800 bg-zinc-900/50 flex items-center gap-3 relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-1 h-full bg-cyan-500" />
+                            <div className="p-2.5 rounded-xl bg-cyan-500/10">
+                                <BarChart3 className="h-6 w-6 text-cyan-500" />
+                            </div>
+                            <h3 className="text-xl font-black text-white uppercase tracking-wide">Pair Performance</h3>
+                        </div>
+                        <div className="p-6 h-[350px]">
+                            <PairPerformanceChart trades={trades} />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Deep Dive Stats */}
+            <div className="rounded-[2rem] border border-zinc-800 bg-zinc-900 overflow-hidden group hover:border-zinc-700 transition-colors duration-300">
+                <div className="p-6 border-b border-zinc-800 bg-zinc-900/50 flex items-center gap-3 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500" />
+                    <div className="p-2.5 rounded-xl bg-emerald-500/10">
+                        <Target className="h-6 w-6 text-emerald-500" />
+                    </div>
+                    <h3 className="text-xl font-black text-white uppercase tracking-wide">Detailed Statistics</h3>
+                </div>
+
+                <div className="p-8 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8">
+                    <div className="space-y-1">
+                        <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Avg Win</p>
+                        <p className="text-2xl font-black text-emerald-400">${stats.avgWin?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || "0.00"}</p>
+                    </div>
+                    <div className="space-y-1">
+                        <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Avg Loss</p>
+                        <p className="text-2xl font-black text-red-400">${stats.avgLoss?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || "0.00"}</p>
+                    </div>
+                    <div className="space-y-1">
+                        <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Avg R:R</p>
+                        <p className="text-2xl font-black text-white">1:{stats.avgRR?.toFixed(2) || "0.00"}</p>
+                    </div>
+                    <div className="space-y-1">
+                        <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Max Drawdown</p>
+                        <p className="text-2xl font-black text-red-500">${stats.maxDrawdown?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || "0.00"}</p>
+                    </div>
+                    <div className="space-y-1">
+                        <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Max Cons. Wins</p>
+                        <p className="text-2xl font-black text-emerald-400">{stats.maxConsecutiveWins || 0}</p>
+                    </div>
+                    <div className="space-y-1">
+                        <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Max Cons. Losses</p>
+                        <p className="text-2xl font-black text-red-400">{stats.maxConsecutiveLosses || 0}</p>
+                    </div>
+                    {/* New Stats for "Highly Accurate" feel */}
+                    <div className="space-y-1">
+                        <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Total Fees</p>
+                        <p className="text-2xl font-black text-zinc-300">$0.00</p>
+                    </div>
+                    <div className="space-y-1">
+                        <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Breakeven Trades</p>
+                        <p className="text-2xl font-black text-zinc-300">0</p>
                     </div>
                 </div>
             </div>

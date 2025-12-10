@@ -177,7 +177,8 @@ export async function getAnalyticsData(mode: 'Live' | 'Backtest' | 'Paper' = 'Li
             sessionData,
             dayData,
             directionData,
-            advancedStats
+            advancedStats,
+            trades
         }
     }
 }

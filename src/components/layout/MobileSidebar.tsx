@@ -67,17 +67,14 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                     >
                         <div className="flex items-center justify-between mb-8">
                             <div className="flex items-center gap-x-3">
-                                <div className="relative h-8 w-8 overflow-hidden rounded-lg">
+                                <div className="relative h-10 w-40 overflow-hidden">
                                     <Image
-                                        src="http://zainenterprisespakistan.com/wp-content/uploads/2025/11/trading-journal-icon.png"
-                                        alt="Logo"
+                                        src="/full-logo.png"
+                                        alt="The Tradal"
                                         fill
-                                        className="object-cover"
+                                        className="object-contain object-left"
                                     />
                                 </div>
-                                <h1 className="text-lg font-bold tracking-tight text-white">
-                                    Trading Journal
-                                </h1>
                             </div>
                             <button
                                 onClick={onClose}

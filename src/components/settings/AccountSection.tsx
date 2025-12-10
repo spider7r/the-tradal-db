@@ -113,11 +113,11 @@ export function AccountSection({ user }: { user: any }) {
                         )}
 
                         <div className="mt-4 grid grid-cols-2 gap-4">
-                            <a href="/downloads/TJP_Sync_MT5.mq5" download className="block p-4 rounded-xl border border-zinc-800 bg-zinc-950 hover:border-emerald-500/50 hover:bg-zinc-900 transition-all text-center">
+                            <a href="/downloads/Tradal_Sync_MT5.mq5" download className="block p-4 rounded-xl border border-zinc-800 bg-zinc-950 hover:border-emerald-500/50 hover:bg-zinc-900 transition-all text-center">
                                 <div className="text-lg font-black text-white mb-1">MetaTrader 5</div>
                                 <div className="text-xs text-emerald-500 font-bold uppercase">Download EA (.mq5)</div>
                             </a>
-                            <a href="/downloads/TJP_Sync_cTrader.cs" download className="block p-4 rounded-xl border border-zinc-800 bg-zinc-950 hover:border-blue-500/50 hover:bg-zinc-900 transition-all text-center">
+                            <a href="/downloads/Tradal_Sync_cTrader.cs" download className="block p-4 rounded-xl border border-zinc-800 bg-zinc-950 hover:border-blue-500/50 hover:bg-zinc-900 transition-all text-center">
                                 <div className="text-lg font-black text-white mb-1">cTrader</div>
                                 <div className="text-xs text-blue-500 font-bold uppercase">Download cBot (.cs)</div>
                             </a>

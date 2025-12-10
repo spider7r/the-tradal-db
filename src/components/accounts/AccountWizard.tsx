@@ -113,7 +113,7 @@ export function AccountWizard({ onComplete, onSkip, isMandatory = false }: Accou
                         </button>
                     )}
                     <h2 className="text-2xl font-bold text-white bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
-                        Setup Your Trading Journal
+                        Setup The Tradal
                     </h2>
                     <p className="text-zinc-400 mt-1">Configure your account to start tracking.</p>
                 </div>

@@ -171,9 +171,9 @@ export default async function DashboardPage({
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-3xl font-black tracking-tight text-white uppercase italic">Dashboard</h2>
+                    <h2 className="text-3xl sm:text-4xl font-black text-white uppercase italic tracking-tight">Dashboard</h2>
                     <div className="flex items-center gap-2 mt-1">
-                        <p className="text-zinc-400">Overview for <span className="text-emerald-400 font-bold">{account?.name}</span></p>
+                        <p className="text-zinc-400 text-sm sm:text-base">Overview for <span className="text-emerald-400 font-bold">{account?.name}</span></p>
                     </div>
                 </div>
                 <TradeDialog accountId={accountId} />
