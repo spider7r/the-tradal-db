@@ -42,6 +42,7 @@ export function TradeDialog({ accountId }: TradeDialogProps) {
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
                 <button
+                    suppressHydrationWarning
                     onClick={handleOpen}
                     className="flex items-center gap-x-2 rounded-md bg-emerald-600 px-3 py-2 sm:px-3.5 sm:py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
                 >

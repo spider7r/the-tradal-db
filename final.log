@@ -1,0 +1,6 @@
+Testing Raw Fetch with NEW KEY...
+Status: 404 Not Found
+Body: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available model

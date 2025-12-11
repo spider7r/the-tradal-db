@@ -46,10 +46,14 @@ export async function analyzeTrade(tradeId: string) {
 
 export async function sendChatMessage(message: string, context?: any, imageBase64?: string) {
     try {
-        const response = await import('@/lib/ai').then(mod => mod.chatWithCoach(message, context, imageBase64))
-        return { success: true, message: response }
+        console.log(`[Action] Received message: "${message.substring(0, 20)}..."`);
+        console.log(`[Action] Image present: ${!!imageBase64} (Length: ${imageBase64?.length || 0})`);
+
+        const response = await import('@/lib/ai').then(mod => mod.chatWithCoach(message, context, imageBase64));
+        console.log("[Action] Response success:", !!response);
+        return { success: true, message: response };
     } catch (error: any) {
-        console.error('Chat error details:', error)
-        return { success: false, error: error.message || 'Failed to get response from AI coach' }
+        console.error('[Action] Chat error details:', error);
+        return { success: false, error: error.message || 'Failed to get response from AI coach' };
     }
 }

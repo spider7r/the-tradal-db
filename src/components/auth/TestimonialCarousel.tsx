@@ -1,96 +1,88 @@
-"use client"
+'use client'
 
-import { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { useState, useEffect } from 'react'
+import { Star } from 'lucide-react'
 
-const reviews = [
+const testimonials = [
     {
-        text: "If you can't measure it, you can't improve it. This platform gave me the data I needed to finally become profitable.",
-        author: "Alex M.",
-        role: "Professional Forex Trader",
-        color: "bg-emerald-400"
+        name: "Alex M.",
+        role: "Forex Trader",
+        text: "The journaling features are a game changer. I've improved my win rate by 15% in just two months.",
+        rating: 5
     },
     {
-        text: "The Tradal completely changed how I approach my daily sessions. The AI insights are scary accurate.",
-        author: "Sarah K.",
-        role: "Crypto Day Trader",
-        color: "bg-cyan-400"
+        name: "Sarah K.",
+        role: "Day Trader",
+        text: "Finally a journal that understands what traders actually need. The analytics are incredible.",
+        rating: 5
     },
     {
-        text: "Finally, a journal that isn't just a spreadsheet. The visual analytics help me spot mistakes instantly.",
-        author: "Michael R.",
-        role: "Funded Trader",
-        color: "bg-purple-400"
-    },
-    {
-        text: "I used to skip journaling because it was tedious. Now it's my favorite part of the trading day.",
-        author: "David L.",
-        role: "Indices Scalper",
-        color: "bg-yellow-400"
-    },
-    {
-        text: "Going from break-even to consistent profitability was all about identifying my tilt triggers. The Tradal spotted them for me.",
-        author: "Jessica T.",
+        name: "Michael R.",
         role: "Swing Trader",
-        color: "bg-red-400"
+        text: "Best investment I've made for my trading career. The AI insights are surprisingly accurate.",
+        rating: 5
     },
     {
-        text: "The best investment I've made for my trading career. The accountability features are unmatched.",
-        author: "James H.",
+        name: "David L.",
         role: "Prop Firm Trader",
-        color: "bg-blue-400"
+        text: "Passed my FTMO challenge thanks to the risk management tracking. Highly recommended.",
+        rating: 5
     },
     {
-        text: "Clean, fast, and powerful. It feels like a tool built by traders, for traders.",
-        author: "Emma W.",
-        role: "Forex Analyst",
-        color: "bg-pink-400"
+        name: "Emma W.",
+        role: "Crypto Trader",
+        text: "The interface is beautiful and so easy to use. Makes reviewing trades actually enjoyable.",
+        rating: 5
+    },
+    {
+        name: "James H.",
+        role: "Scalper",
+        text: "Speed and reliability are top notch. Syncs with my cTrader account perfectly.",
+        rating: 5
+    },
+    {
+        name: "Oliver P.",
+        role: "Gold Trader",
+        text: "The backtesting engine is professional grade. Identical to FX Replay but integrated.",
+        rating: 5
     }
 ]
 
 export function TestimonialCarousel() {
-    const [index, setIndex] = useState(0)
+    const [current, setCurrent] = useState(0)
 
     useEffect(() => {
         const timer = setInterval(() => {
-            setIndex((prev) => (prev + 1) % reviews.length)
-        }, 5000) // Switch every 5 seconds
-
+            setCurrent((prev) => (prev + 1) % testimonials.length)
+        }, 5000)
         return () => clearInterval(timer)
     }, [])
 
     return (
-        <div className="relative h-48 w-full">
-            <AnimatePresence mode="wait">
-                <motion.div
+        <div className="relative h-32 w-full overflow-hidden">
+            {testimonials.map((testimonial, index) => (
+                <div
                     key={index}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.5, ease: "easeOut" }}
-                    className="absolute inset-0"
+                    className={`absolute inset-0 flex flex-col items-center justify-center transition-all duration-1000 ease-in-out ${index === current ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+                        }`}
                 >
-                    <div className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md">
-                        <div className="flex gap-4 mb-4">
-                            <div className="h-2 w-2 rounded-full bg-red-400/50" />
-                            <div className="h-2 w-2 rounded-full bg-yellow-400/50" />
-                            <div className="h-2 w-2 rounded-full bg-emerald-400/50" />
-                        </div>
-                        <p className="text-zinc-300 font-mono text-sm leading-relaxed min-h-[60px]">
-                            "{reviews[index].text}"
-                        </p>
-                        <div className="mt-4 flex items-center gap-3">
-                            <div className={`h-8 w-8 rounded-full ${reviews[index].color} flex items-center justify-center text-black font-bold text-xs`}>
-                                {reviews[index].author[0]}
-                            </div>
-                            <div>
-                                <p className="text-xs font-bold text-white">{reviews[index].author}</p>
-                                <p className="text-[10px] text-zinc-500">{reviews[index].role}</p>
-                            </div>
-                        </div>
+                    <div className="flex gap-1 mb-3">
+                        {[...Array(testimonial.rating)].map((_, i) => (
+                            <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
+                        ))}
                     </div>
-                </motion.div>
-            </AnimatePresence>
+
+                    <p className="text-zinc-300 text-center text-sm md:text-base italic mb-3 max-w-lg">
+                        "{testimonial.text}"
+                    </p>
+
+                    <div className="flex items-center gap-2">
+                        <span className="text-white font-bold text-sm">{testimonial.name}</span>
+                        <span className="text-zinc-600 text-xs">•</span>
+                        <span className="text-emerald-400 text-xs font-medium uppercase tracking-wider">{testimonial.role}</span>
+                    </div>
+                </div>
+            ))}
         </div>
     )
 }

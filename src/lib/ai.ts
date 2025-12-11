@@ -1,189 +1,279 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import Groq from 'groq-sdk';
+import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// --- Gemini Key Manager (Round Robin & Failover) ---
-class GeminiKeyManager {
-  private keys: string[]
-  private currentIndex: number = 0
+// --- CONFIGURATION ---
+const GROQ_TEXT_MODEL = 'llama-3.3-70b-versatile';
+const GROQ_VISION_MODEL = 'llama-3.2-11b-vision-preview'; // Decommissioned? Logic handles fallback.
+const CEREBRAS_MODEL = 'llama3.1-70b';
+const GEMINI_MODEL = 'gemini-2.5-flash';
+
+// --- KEY MANAGEMENT ---
+function getKeys(envVar: string): string[] {
+  const val = process.env[envVar] || '';
+  return val.split(',').map(k => k.trim()).filter(k => k.length > 0);
+}
+
+// --- PROVIDER INTERFACE ---
+interface AIProvider {
+  name: string;
+  generate(prompt: string, systemPrompt: string, imageBase64?: string): Promise<string>;
+}
+
+// --- GEMINI IMPLEMENTATION ---
+class GeminiProvider implements AIProvider {
+  name = 'Gemini';
+  private keys: string[] = [];
+  private currentIndex = 0;
 
   constructor() {
-    // 1. Try GEMINI_API_KEYS (Comma separated list)
-    // 2. Fallback to GEMINI_API_KEY (Single key)
-    const keysRaw = process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY || ''
+    // Support both multiple keys (GEMINI_API_KEYS) and legacy single key (GEMINI_API_KEY)
+    const multi = getKeys('GEMINI_API_KEYS');
+    const single = process.env.GEMINI_API_KEY;
 
-    // Parse and clean keys
-    this.keys = keysRaw.split(',')
-      .map(k => k.trim())
-      .filter(k => k.length > 0)
-
-    if (this.keys.length > 0) {
-      console.log(`[GeminiKeyManager] Initialized with ${this.keys.length} API keys.`)
-    } else {
-      console.warn('[GeminiKeyManager] No API keys found! AI features will not work.')
+    if (multi.length > 0) {
+      this.keys = multi;
+    } else if (single) {
+      this.keys = [single];
     }
   }
 
-  // Execute an AI operation with automatic failover for Rate Limits (429)
-  async execute<T>(operation: (model: any) => Promise<T>): Promise<T> {
-    if (this.keys.length === 0) throw new Error('No Gemini API keys configured.')
+  private getClient(keyIndex: number): GoogleGenerativeAI {
+    return new GoogleGenerativeAI(this.keys[keyIndex]);
+  }
 
-    let lastError: any
-    // Try each key at least once (or loop through them if needed)
-    const maxAttempts = this.keys.length
+  async generate(prompt: string, systemPrompt: string, imageBase64?: string): Promise<string> {
+    if (this.keys.length === 0) throw new Error("No Gemini Keys Configured");
 
-    for (let i = 0; i < maxAttempts; i++) {
+    // Try keys in Round-Robin fashion
+    // We try at most 'this.keys.length' times.
+    let attempts = 0;
+    let lastError: any = null;
+
+    // Start from current index
+    let iterator = this.currentIndex;
+
+    while (attempts < this.keys.length) {
+      const key = this.keys[iterator];
+      // Move index for next time (Round Robin globally)
+      this.currentIndex = (this.currentIndex + 1) % this.keys.length;
+
       try {
-        const currentKey = this.keys[this.currentIndex]
-        const genAI = new GoogleGenerativeAI(currentKey)
-        // Use gemini-1.5-flash as the standard efficient model
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+        const genAI = new GoogleGenerativeAI(key);
+        const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
 
-        return await operation(model)
+        let parts: any[] = [{ text: `${systemPrompt}\n\nUSER PROMPT:\n${prompt}` }];
 
-      } catch (error: any) {
-        lastError = error
-
-        // Check for Rate Limit / Quota errors
-        const isRateLimit = error.response?.status === 429 ||
-          error.status === 429 ||
-          error.toString().includes('429') ||
-          error.toString().includes('quota') ||
-          error.toString().includes('resource_exhausted')
-
-        if (isRateLimit) {
-          console.warn(`[GeminiKeyManager] Key ending in ...${this.keys[this.currentIndex].slice(-4)} exhausted (429). Switching keys...`)
-
-          // Rotate to next key
-          this.currentIndex = (this.currentIndex + 1) % this.keys.length
-          continue // Retry immediately with new key
+        if (imageBase64) {
+          const base64Clean = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+          parts.push({
+            inlineData: {
+              data: base64Clean,
+              mimeType: "image/jpeg"
+            }
+          });
         }
 
-        // If it's a different error (e.g., policy violation), throw it immediately
-        throw error
+        const result = await model.generateContent(parts);
+        const response = await result.response;
+        return response.text();
+
+      } catch (err: any) {
+        console.warn(`Gemini Key ending in ...${key.slice(-5)} Failed:`, err.message);
+        lastError = err;
+
+        // If 429 (Rate Limit) or 503 (Overloaded), try next key.
+        // If it's a 400 (Bad Request), it might be the image/prompt, so retrying might not help, but for safety we try one more just in case.
+        attempts++;
+        iterator = (iterator + 1) % this.keys.length; // Next key
       }
     }
 
-    throw new Error(`All Gemini API keys exhausted. Last error: ${lastError?.message}`)
+    throw lastError || new Error("All Gemini Keys Exhausted");
   }
 }
 
-// Global instance
-const keyManager = new GeminiKeyManager()
+// --- GROQ IMPLEMENTATION ---
+class GroqProvider implements AIProvider {
+  name = 'Groq';
+  private keys: string[];
+  private currentIndex = 0;
 
-export async function generateTradeReview(tradeData: any) {
-  return keyManager.execute(async (model) => {
-    const prompt = `
-      You are an expert trading coach with decades of experience in price action, risk management, and trading psychology. 
-      Analyze this trade deeply and provide a structured, high-value review.
+  constructor() {
+    this.keys = getKeys('GROQ_API_KEYS');
+  }
 
-      Trade Details:
-      - Pair: ${tradeData.pair}
-      - Direction: ${tradeData.direction}
-      - Entry Price: ${tradeData.entry_price}
-      - Exit Price: ${tradeData.exit_price}
-      - P&L: ${tradeData.pnl}
-      - Risk:Reward Ratio: ${tradeData.rr || 'Not specified'}
-      - Setup/Strategy: ${tradeData.setup_type || 'Not specified'}
-      - User Notes: "${tradeData.notes || 'No notes provided'}"
-      - Closing Reason: ${tradeData.closing_reason || 'Not specified'}
-      - Mode: ${tradeData.mode || 'Live'}
+  private getNextClient(): Groq {
+    const key = this.keys[this.currentIndex];
+    this.currentIndex = (this.currentIndex + 1) % this.keys.length; // Round Robin
+    return new Groq({ apiKey: key });
+  }
 
-      STRICT INSTRUCTIONS:
-      1. Adopt a professional, "tough love" mentor persona. Be direct but encouraging.
-      2. Analyze the R:R and outcome. Did the user follow their plan?
-      3. Use the User Notes to infer their psychological state.
-      4. Format your response using the following Markdown headers:
+  async generate(prompt: string, systemPrompt: string, imageBase64?: string): Promise<string> {
+    if (this.keys.length === 0) throw new Error("No Groq Keys Configured");
 
-      ## 🔍 Technical Analysis
-      (Analyze the entry/exit efficiency and trade management)
+    // SAFETY OVERRIDE:
+    // Groq Vision is unstable/decommissioned. If we receive an image, it means Gemini failed.
+    // We MUST fallback to Text-Only to prevent a crash.
+    const model = GROQ_TEXT_MODEL;
 
-      ## ✅ Strengths
-      (Bullet points of what they did well)
+    // Add a note about missing vision
+    const effectivePrompt = imageBase64
+      ? prompt + "\n\n[SYSTEM NOTE: Image analysis failed on primary provider (Gemini). This is a text-only fallback response. Do not hallucinate chart details.]"
+      : prompt;
 
-      ## ⚠️ Weaknesses & Mistakes
-      (Bullet points of errors in execution or mindset)
-
-      ## 💡 Actionable Advice
-      (One specific thing to practice or change for the next trade)
-
-      ## 🧠 Psychology Check
-      (Brief assessment of their mindset based on notes/actions)
-
-      **Rating: X/10**
-    `
-
-    const result = await model.generateContent(prompt)
-    const response = await result.response
-    return response.text()
-  })
+    let attempts = 0;
+    while (attempts < this.keys.length) {
+      try {
+        const client = this.getNextClient();
+        const completion = await client.chat.completions.create({
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: effectivePrompt }
+          ],
+          model: model,
+        });
+        return completion.choices[0]?.message?.content || "";
+      } catch (err: any) {
+        console.error(`Groq Key Failed (${attempts + 1}/${this.keys.length}):`, err);
+        if (err.error) console.error("Groq Error Details:", JSON.stringify(err.error, null, 2));
+        attempts++;
+        if (err.status === 429) continue;
+        throw err;
+      }
+    }
+    throw new Error("All Groq Keys Exhausted");
+  }
 }
 
+// --- CEREBRAS IMPLEMENTATION ---
+class CerebrasProvider implements AIProvider {
+  name = 'Cerebras';
+  private keys: string[];
+  private currentIndex = 0;
 
-export async function chatWithCoach(message: string, context?: any, imageBase64?: string) {
-  return keyManager.execute(async (model) => {
-    const prompt = `
-      You are "Tradal Buddy", the expert AI trading assistant for The Tradal (AI Trading Journal).
-      
-      Context:
-      ${context ? JSON.stringify(context, null, 2) : 'No specific trade context provided.'}
+  constructor() {
+    this.keys = getKeys('CEREBRAS_API_KEYS');
+  }
 
-      User Message: "${message}"
+  private getNextClient(): OpenAI {
+    const key = this.keys[this.currentIndex];
+    this.currentIndex = (this.currentIndex + 1) % this.keys.length;
+    return new OpenAI({
+      apiKey: key,
+      baseURL: "https://api.cerebras.ai/v1"
+    });
+  }
 
-      STRICT INSTRUCTIONS:
-      1. Your name is "Tradal Buddy".
-      2. The founder and CEO of The Tradal is "Wali" (aka "Muhammad Waleed").
-      3. Be extremely concise and direct.
-      4. ONLY answer questions related to:
-         - Trading (Psychology, Risk Management, Technical Analysis).
-         - The user's specific trades provided in the context.
-         - The Tradal platform.
-         - Market analysis based on provided charts/images.
-      5. If the user greets you, respond: "Hello! I'm Tradal Buddy. How can I help with your trading?"
-      6. Refuse off-topic questions politely.
-      7. Do NOT give financial advice.
-      8. DO NOT introduce yourself in every message. Only mention your name if asked or in the initial greeting.
-      9. IF AN IMAGE IS PROVIDED (Chart Analysis Mode):
-         - Adopt a "Pro Trading Expert" persona.
-         - Provide a detailed, structured analysis with the following sections:
-           **📊 Market Structure & Trend**:
-           - Identify the overall trend (Bullish/Bearish/Ranging).
-           - Note key Highs and Lows (HH, HL, LH, LL).
-           
-           **🎯 Key Levels (SNR)**:
-           - Identify nearest Support & Resistance zones.
-           - Note any psychological levels.
-           
-           **🔮 Scenarios (If This / If That)**:
-           - **Bullish Scenario**: "If price breaks above [Level], look for..."
-           - **Bearish Scenario**: "If price breaks below [Level], look for..."
-           
-           **💡 Prediction & Confluence**:
-           - Give a probability-based prediction.
-           - List confluences (e.g., Trend + Support + Candle Pattern).
-         
-         - Keep the tone professional, valuable, and educational.
+  async generate(prompt: string, systemPrompt: string, imageBase64?: string): Promise<string> {
+    if (this.keys.length === 0) throw new Error("No Cerebras Keys Configured");
 
-      10. FOR COMPLEX QUESTIONS (Strategy, Psychology, Math):
-          - Break down the answer into logical steps.
-          - Use analogies if helpful.
-          - Provide pros and cons where applicable.
-          - Ensure the reasoning is sound and easy to follow.
-    `
+    // Cerebras Llama 3.1 70b is Text Only.
+    const effectivePrompt = imageBase64
+      ? prompt + "\n\n[System Note: Image analysis failed on primary provider. This is a text-only fallback response.]"
+      : prompt;
 
-    let parts: any[] = [{ text: prompt }];
-
-    if (imageBase64) {
-      // Remove data URL prefix if present
-      const base64Data = imageBase64.split(',')[1] || imageBase64;
-      parts.push({
-        inlineData: {
-          data: base64Data,
-          mimeType: "image/png" // Assuming PNG/JPEG, API is flexible
-        }
-      });
+    let attempts = 0;
+    while (attempts < this.keys.length) {
+      try {
+        const client = this.getNextClient();
+        const completion = await client.chat.completions.create({
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: effectivePrompt }
+          ],
+          model: CEREBRAS_MODEL,
+        });
+        return completion.choices[0]?.message?.content || "";
+      } catch (err: any) {
+        console.warn(`Cerebras Key Failed (${attempts + 1}/${this.keys.length}):`, err.message);
+        attempts++;
+        if (err.status === 429) continue;
+        throw err;
+      }
     }
+    throw new Error("All Cerebras Keys Exhausted");
+  }
+}
 
-    const result = await model.generateContent(parts)
-    const response = await result.response
-    return response.text()
-  })
+// --- THE MANAGER (THE BRAIN) ---
+class AIManager {
+  private providers: AIProvider[] = [];
+
+  constructor() {
+    // Order defines priority: Gemini (Best) -> Groq (Fast) -> Cerebras (Backup)
+    this.providers.push(new GeminiProvider());
+    this.providers.push(new GroqProvider());
+    this.providers.push(new CerebrasProvider());
+  }
+
+  async generate(message: string, context?: any, imageBase64?: string): Promise<string> {
+    const systemPrompt = `
+      You are "Tradal Buddy", the Lead Trading Analyst for The Tradal.
+      
+      CONTEXT: ${context ? JSON.stringify(context) : 'No specific trade context.'}
+      
+      YOUR PERSONA:
+      - **Role**: Institutional Hedge Fund Analyst (Wall Street Grade).
+      - **Methodology**: Smart Money Concepts (SMC), ICT, Price Action, Wyckoff, Supply & Demand.
+      - **Tone**: Professional, Analytical, Unemotional, Precision-Oriented.
+      - **Goal**: To provide "Deep Dive" analytics that give the user an unfair edge.
+      
+      INSTRUCTIONS:
+      1. **Casual Chat**: Respond briefly but professionally. Focus on the mission.
+      2. **Text Questions**: Use advanced terminology (Liquidity, Imbalance, Premium/Discount) to explain concepts.
+      
+      3. **CHART ANALYSIS (Strict "Pro" Format)**:
+      If an image is provided, acts as if you are managing a $10M book. Use this structure:
+      
+      **PAIR NAME**: [Pair]  |  **TIMING**: [Timeframe identified]
+      
+      **MARKET STRUCTURE (The Narrative)**:
+      - Trend Direction (Order Flow).
+      - Identify **Order Blocks (OB)**, **Breaker Blocks**, and **Fair Value Gaps (FVG)**.
+      - Check for **Liquidity Thefts** (Stop Hunts) or **Inducements**.
+      - Is price in **Premium** or **Discount**?
+      
+      **NEAREST SNR**:
+      - **Support**: Identify Demand Zones, Order Blocks, psychological levels.
+      - **Resistance**: Identify Supply Zones, Bearish Breakers.
+      
+      **PROBABILITIES & CONFLUENCE**:
+      - **Bullish Case %**: Based on Price Action + Structure.
+      - **Bearish Case %**: Based on Price Action + Structure.
+      - **Confluences**: List 3+ reasons (e.g., "Retest of FVG + 0.618 Fib + RSI Divergence").
+      
+      **FINAL CONCLUSION (Institutional Verdict)**:
+      - **Bias**: [LONG / SHORT / WAIT]
+      - **Invalidation Level**: Where does the thesis fail?
+      - **Target Areas**: Where is the liquidity?
+      
+      4. **Safety**: "Not Financial Advice. Institutional Analysis Only."
+        `;
+
+    for (const provider of this.providers) {
+      try {
+        console.log(`[AIManager] Attempting ${provider.name}...`);
+        const result = await provider.generate(message, systemPrompt, imageBase64);
+        return result;
+      } catch (err: any) {
+        console.warn(`[AIManager] ${provider.name} Failed:`, err.message);
+        // Continue to next provider
+      }
+    }
+    throw new Error("ALL AI PROVIDERS FAILED. Application is overloaded.");
+  }
+} // End AIManager
+
+// --- SINGLETON INSTANCE ---
+const aiManager = new AIManager();
+
+// --- EXPORTED FACADE ---
+export async function chatWithCoach(message: string, context?: any, imageBase64?: string) {
+  return aiManager.generate(message, context, imageBase64);
+}
+
+export async function generateTradeReview(tradeData: any) {
+  const prompt = `Review this trade data and give 3 bullet points of advice: ${JSON.stringify(tradeData)}`;
+  return aiManager.generate(prompt, tradeData);
 }

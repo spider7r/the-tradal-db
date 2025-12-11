@@ -108,8 +108,6 @@ export default function AnalyticsPage() {
                 />
                 <StatsWidget
                     title="Expectancy"
-                    value={`$${props => props.value}`} // StatsWidget expects value, handling formatting
-                    // Just pass strict value
                     value={`$${(stats.expectancy || 0).toFixed(2)}`}
                     icon={Target}
                     color="cyan"

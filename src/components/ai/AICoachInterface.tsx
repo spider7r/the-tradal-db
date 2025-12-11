@@ -125,7 +125,7 @@ export function AICoachInterface({ initialTrades, initialReports }: AICoachInter
             const errorMsg: Message = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
-                content: "I'm having trouble connecting to the server right now. Please try again.",
+                content: response.error || "I'm having trouble connecting to the server right now. Please try again.",
                 timestamp: new Date()
             }
             setMessages(prev => [...prev, errorMsg])
