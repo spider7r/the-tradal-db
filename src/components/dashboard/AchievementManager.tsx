@@ -43,7 +43,7 @@ export function AchievementManager({ account, currentBalance, dailyPnL, achievem
                     scrollX: 0,
                     scrollY: 0,
                     foreignObjectRendering: false,
-                    onclone: (doc) => {
+                    onclone: (doc: Document) => {
                         // Force styles if needed, but visible render should handle it
                         const el = doc.getElementById('cert-element')
                         if (el) el.style.visibility = 'visible'
