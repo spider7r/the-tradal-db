@@ -4,6 +4,7 @@ import { forwardRef } from 'react'
 import { Trophy } from 'lucide-react'
 
 interface CertificateProps {
+    id?: string
     accountName: string
     type: 'TARGET_HIT' | 'PASSED'
     date: string
@@ -13,7 +14,7 @@ interface CertificateProps {
     achievements?: any[]
 }
 
-export const Certificate = forwardRef<HTMLDivElement, CertificateProps>(({ accountName, type, date, amount, currency = 'USD', certificateId }, ref) => {
+export const Certificate = forwardRef<HTMLDivElement, CertificateProps>(({ id, accountName, type, date, amount, currency = 'USD', certificateId }, ref) => {
 
     // Formatting currency
     const formattedAmount = new Intl.NumberFormat('en-US', {
@@ -23,6 +24,7 @@ export const Certificate = forwardRef<HTMLDivElement, CertificateProps>(({ accou
 
     return (
         <div
+            id={id}
             ref={ref}
             className="w-[800px] h-[600px] bg-black relative flex flex-col p-12 font-sans overflow-hidden text-white"
             style={{ fontFamily: 'Inter, sans-serif' }}
