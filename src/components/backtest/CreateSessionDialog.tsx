@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { X, ChevronLeft, ChevronRight, Check } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -93,6 +93,7 @@ export function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogP
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[600px] bg-[#0A0A0A] border-white/5 text-white p-0 gap-0 overflow-hidden min-h-[500px] flex flex-col w-[95vw]">
+                <DialogTitle className="sr-only">Create New Session</DialogTitle>
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 sm:p-6 pb-2 sm:pb-4 border-b border-white/5">
                     <div className="flex items-center gap-2">
