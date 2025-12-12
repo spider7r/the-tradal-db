@@ -449,10 +449,125 @@ class AIManager {
 // --- SINGLETON INSTANCE ---
 const aiManager = new AIManager();
 
-// --- EXPORTED FACADE ---
-export async function chatWithCoach(message: string, context?: any, imageBase64?: string) {
-  return aiManager.generate(message, context, imageBase64);
+// --- HUGGING FACE IMPLEMENTATION (Qwen 2.5 72B) ---
+class HuggingFaceProvider implements AIProvider {
+  name = 'Hugging Face (Qwen 72B)';
+  private client: OpenAI | null = null;
+
+  constructor() {
+    const token = process.env.HUGGINGFACE_API_KEY;
+    if (token) {
+      this.client = new OpenAI({
+        baseURL: "https://api-inference.huggingface.co/v1/",
+        apiKey: token
+      });
+    }
+  }
+
+  async generate(prompt: string, systemPrompt: string, imageBase64?: string): Promise<string> {
+    if (!this.client) throw new Error("No HuggingFace Token Configured");
+
+    // Hugging Face Inference API is primarily text.
+    const effectivePrompt = imageBase64
+      ? prompt + "\n\n[System Note: Image context unavailable on Hugging Face. Analyze text data only.]"
+      : prompt;
+
+    try {
+      const completion = await this.client.chat.completions.create({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: effectivePrompt }
+        ],
+        model: "Qwen/Qwen2.5-72B-Instruct",
+        temperature: 0.7,
+        max_tokens: 4096
+      });
+      return completion.choices[0]?.message?.content || "";
+    } catch (err: any) {
+      console.warn(`[HuggingFace] Failed:`, err.message);
+      throw err;
+    }
+  }
 }
+
+// --- TOGETHER AI IMPLEMENTATION (Llama 3.2 Vision) ---
+class TogetherProvider implements AIProvider {
+  name = 'Together AI';
+  private client: OpenAI | null = null;
+
+  constructor() {
+    const token = process.env.TOGETHER_API_KEY;
+    if (token) {
+      this.client = new OpenAI({
+        baseURL: "https://api.together.xyz/v1",
+        apiKey: token
+      });
+    }
+  }
+
+  async generate(prompt: string, systemPrompt: string, imageBase64?: string): Promise<string> {
+    if (!this.client) throw new Error("No Together AI Token Configured");
+
+    const messages: any[] = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: prompt }
+    ];
+
+    let model = "meta-llama/Llama-3.2-11B-Vision-Instruct-Turbo";
+
+    if (imageBase64) {
+      messages[1].content = [
+        { type: "text", text: prompt },
+        {
+          type: "image_url",
+          image_url: {
+            url: imageBase64.startsWith('data:') ? imageBase64 : `data:image/jpeg;base64,${imageBase64}`
+          }
+        }
+      ];
+    } else {
+      // Use text optimized model if no image
+      model = "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo";
+    }
+
+    try {
+      const completion = await this.client.chat.completions.create({
+        messages: messages,
+        model: model,
+        temperature: 0.7,
+      });
+      return completion.choices[0]?.message?.content || "";
+    } catch (err: any) {
+      console.warn(`[Together AI] Failed:`, err.message);
+      throw err;
+    }
+  }
+}
+
+// --- THE MANAGER (THE BRAIN) ---
+class AIManager {
+  private providers: AIProvider[] = [];
+
+  constructor() {
+    // Priority Chain:
+    // 1. GitHub (GPT-4o) - Top Tier Vision
+    // 2. Together AI (Llama Vision) - Top Speed Vision
+    // 3. SambaNova (Llama 405B) - Top Tier Reasoning
+    // 4. DeepSeek (V3) - Top Tier Reasoning
+    // 5. Hugging Face (Qwen 72B) - Strong Fallback
+    // 6. Gemini (Flash 2.0) - High Speed Vision
+    // 7. Groq (Llama 3.2) - High Speed Vision Backup
+    // 8. Cerebras (Llama 70b) - Instant Fallback
+
+    this.providers.push(new GithubProvider());
+    this.providers.push(new TogetherProvider());
+    this.providers.push(new SambaNovaProvider());
+    this.providers.push(new DeepSeekProvider());
+    this.providers.push(new HuggingFaceProvider());
+    this.providers.push(new GeminiProvider());
+    this.providers.push(new GroqProvider());
+    this.providers.push(new CerebrasProvider());
+  }
 
 export async function generateTradeReview(tradeData: any) {
   const prompt = `Review this trade data and give 3 bullet points of advice: ${JSON.stringify(tradeData)}`;
