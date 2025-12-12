@@ -48,8 +48,13 @@ class GeminiProvider implements AIProvider {
 
     // Try keys in Round-Robin fashion
     // We try at most 'this.keys.length' times.
-    let lastError: any = null;
+    throw lastError || new Error("All Gemini Keys & Models Exhausted");
+  }
+}
 
+// --- GROQ IMPLEMENTATION ---
+class GroqProvider implements AIProvider {
+  name = 'Groq';
   private keys: string[];
   private currentIndex = 0;
 
