@@ -147,8 +147,8 @@ class GroqProvider implements AIProvider {
     ];
 
     if (imageBase64) {
-      // Use Vision Model
-      model = 'llama-3.2-11b-vision-preview';
+      // Use Flagship Vision Model (90B is more stable than 11B)
+      model = 'llama-3.2-90b-vision-preview';
 
       // Format message for Groq Vision (OpenAI compatible)
       messages[1].content = [
@@ -169,6 +169,8 @@ class GroqProvider implements AIProvider {
         const completion = await client.chat.completions.create({
           messages: messages, // Use the pre-constructed messages array
           model: model,
+          temperature: 0.7,
+          max_tokens: 4096 // Critical for Vision to prevent cutoff
         });
         return completion.choices[0]?.message?.content || "";
       } catch (err: any) {
