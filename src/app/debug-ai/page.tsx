@@ -24,24 +24,29 @@ export default async function DebugAIPage() {
         modelCheck: 'Pending...'
     };
 
-    // Test the first key
-    let testResult = 'Not Attempted';
+    // Test the first 5 keys
+    let testResults: string[] = [];
     let modelStatus = 'Unknown';
 
     if (parsedKeys.length > 0) {
-        try {
-            const genAI = new GoogleGenerativeAI(parsedKeys[0]);
-            // Test the configured model from ai.ts logic
-            const modelId = 'models/gemini-2.5-flash';
-            const model = genAI.getGenerativeModel({ model: modelId });
+        const keysToTest = parsedKeys.slice(0, 5); // Test up to 5
 
-            const result = await model.generateContent("Test connection. Reply 'OK'.");
-            const response = await result.response;
-            testResult = `Success: ${response.text()}`;
-            modelStatus = `Model '${modelId}' is working.`;
-        } catch (e: any) {
-            testResult = `Failed: ${e.message}`;
-            modelStatus = `Model Error: ${e.response?.status || 'Unknown Status'}`;
+        for (let i = 0; i < keysToTest.length; i++) {
+            const key = keysToTest[i];
+            const masked = `...${key.slice(-5)}`;
+            try {
+                const genAI = new GoogleGenerativeAI(key);
+                const modelId = 'models/gemini-2.5-flash';
+                const model = genAI.getGenerativeModel({ model: modelId });
+
+                const result = await model.generateContent("Test. Reply 'OK'.");
+                const response = await result.response;
+                testResults.push(`Key #${i + 1} (${masked}): ✅ Success (${response.text()})`);
+                modelStatus = `At least one key is working.`;
+            } catch (e: any) {
+                testResults.push(`Key #${i + 1} (${masked}): ❌ Failed (${e.response?.status || e.message})`);
+                if (modelStatus === 'Unknown') modelStatus = `Error: ${e.response?.status || 'Unknown'}`;
+            }
         }
     }
 
@@ -61,10 +66,14 @@ export default async function DebugAIPage() {
                 </div>
 
                 <div className="border-t border-green-900 pt-4">
-                    <strong className="text-white">API Connectivity Test (Key #1):</strong> <br />
-                    <pre className="whitespace-pre-wrap bg-zinc-900 p-2 rounded mt-2 text-sm">
-                        {testResult}
-                    </pre>
+                    <strong className="text-white">API Connectivity Test (First 5 Keys):</strong> <br />
+                    <div className="space-y-2 bg-zinc-900 p-2 rounded mt-2 text-sm max-h-60 overflow-y-auto">
+                        {testResults.map((res, i) => (
+                            <div key={i} className={res.includes('✅') ? 'text-green-400' : 'text-red-400'}>
+                                {res}
+                            </div>
+                        ))}
+                    </div>
                 </div>
 
                 <div>
