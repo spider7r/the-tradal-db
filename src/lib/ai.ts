@@ -136,25 +136,36 @@ class GroqProvider implements AIProvider {
   async generate(prompt: string, systemPrompt: string, imageBase64?: string): Promise<string> {
     if (this.keys.length === 0) throw new Error("No Groq Keys Configured");
 
-    // SAFETY OVERRIDE:
-    // Groq Vision is unstable/decommissioned. If we receive an image, it means Gemini failed.
-    // We MUST fallback to Text-Only to prevent a crash.
-    const model = GROQ_TEXT_MODEL;
+    // SAFETY CHECK:
+    // Try to use Llama 3.2 Vision if image is present.
+    let model = GROQ_TEXT_MODEL;
+    let messages: any[] = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: prompt } // Default text content
+    ];
 
-    // Add a note about missing vision
-    const effectivePrompt = imageBase64
-      ? prompt + "\n\n[SYSTEM NOTE: Image analysis failed on primary provider (Gemini). This is a text-only fallback response. Do not hallucinate chart details.]"
-      : prompt;
+    if (imageBase64) {
+      // Use Vision Model
+      model = 'llama-3.2-11b-vision-preview';
+
+      // Format message for Groq Vision (OpenAI compatible)
+      messages[1].content = [
+        { type: "text", text: prompt },
+        {
+          type: "image_url",
+          image_url: {
+            url: imageBase64.startsWith('data:') ? imageBase64 : `data:image/jpeg;base64,${imageBase64}`
+          }
+        }
+      ];
+    }
 
     let attempts = 0;
     while (attempts < this.keys.length) {
       try {
         const client = this.getNextClient();
         const completion = await client.chat.completions.create({
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: effectivePrompt }
-          ],
+          messages: messages, // Use the pre-constructed messages array
           model: model,
         });
         return completion.choices[0]?.message?.content || "";
