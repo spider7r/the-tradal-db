@@ -285,13 +285,104 @@ class GithubProvider implements AIProvider {
   }
 }
 
+// --- DEEPSEEK IMPLEMENTATION (The "Chinese" Powerhouse) ---
+class DeepSeekProvider implements AIProvider {
+  name = 'DeepSeek V3';
+  private client: OpenAI | null = null;
+
+  constructor() {
+    const token = process.env.DEEPSEEK_API_KEY;
+    if (token) {
+      this.client = new OpenAI({
+        baseURL: "https://api.deepseek.com",
+        apiKey: token
+      });
+    }
+  }
+
+  async generate(prompt: string, systemPrompt: string, imageBase64?: string): Promise<string> {
+    if (!this.client) throw new Error("No DeepSeek Token Configured");
+
+    // DeepSeek V3 currently has limited vision interactively, mostly text powerhouse.
+    // We append a note if an image was ignored.
+    const effectivePrompt = imageBase64
+      ? prompt + "\n\n[System Note: Image context unavailable on DeepSeek. Analyze text data only.]"
+      : prompt;
+
+    try {
+      const completion = await this.client.chat.completions.create({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: effectivePrompt }
+        ],
+        model: "deepseek-chat",
+        temperature: 0.7,
+      });
+      return completion.choices[0]?.message?.content || "";
+    } catch (err: any) {
+      console.warn(`[DeepSeek] Failed:`, err.message);
+      throw err;
+    }
+  }
+}
+
+// --- SAMBANOVA IMPLEMENTATION (Llama 3.1 405B - "The Beast") ---
+class SambaNovaProvider implements AIProvider {
+  name = 'SambaNova (Llama 405B)';
+  private client: OpenAI | null = null;
+
+  constructor() {
+    const token = process.env.SAMBANOVA_API_KEY;
+    if (token) {
+      this.client = new OpenAI({
+        baseURL: "https://api.sambanova.ai/v1",
+        apiKey: token
+      });
+    }
+  }
+
+  async generate(prompt: string, systemPrompt: string, imageBase64?: string): Promise<string> {
+    if (!this.client) throw new Error("No SambaNova Token Configured");
+
+    // Llama 3.1 405B on SambaNova is Text-Only currently.
+    const effectivePrompt = imageBase64
+      ? prompt + "\n\n[System Note: Image context unavailable on SambaNova. Analyze text data only.]"
+      : prompt;
+
+    try {
+      const completion = await this.client.chat.completions.create({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: effectivePrompt }
+        ],
+        // Use the massive 405B model for "High Tier" intelligence
+        model: "Meta-Llama-3.1-405B-Instruct",
+        temperature: 0.7,
+      });
+      return completion.choices[0]?.message?.content || "";
+    } catch (err: any) {
+      console.warn(`[SambaNova] Failed:`, err.message);
+      throw err;
+    }
+  }
+}
+
 // --- THE MANAGER (THE BRAIN) ---
 class AIManager {
   private providers: AIProvider[] = [];
 
   constructor() {
-    // Priority: GitHub (GPT-4o) -> Gemini (Failover) -> Groq -> Cerebras
+    // Priority Chain:
+    // 1. GitHub (GPT-4o) - Top Tier Vision
+    // 2. SambaNova (Llama 405B) - Top Tier Reasoning (Free)
+    // 3. DeepSeek (V3) - Top Tier Coding/Reasoning (Cheap/Free)
+    // 4. Gemini (Flash 2.0) - High Speed Vision
+    // 5. Groq (Llama 3.2) - High Speed Vision Backup
+    // 6. Cerebras (Llama 70b) - Instant Fallback
+
     this.providers.push(new GithubProvider());
+    this.providers.push(new SambaNovaProvider());
+    this.providers.push(new DeepSeekProvider());
     this.providers.push(new GeminiProvider());
     this.providers.push(new GroqProvider());
     this.providers.push(new CerebrasProvider());
