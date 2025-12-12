@@ -369,19 +369,84 @@ class SambaNovaProvider implements AIProvider {
   }
 }
 
+    } catch (err: any) {
+  console.warn(`[Mistral] Failed:`, err.message);
+  throw err;
+}
+  }
+}
+
+// --- OPENROUTER IMPLEMENTATION (The Aggregator) ---
+class OpenRouterProvider implements AIProvider {
+  name = 'OpenRouter';
+  private client: OpenAI | null = null;
+
+  constructor() {
+    const token = process.env.OPENROUTER_API_KEY;
+    if (token) {
+      this.client = new OpenAI({
+        baseURL: "https://openrouter.ai/api/v1",
+        apiKey: token,
+        defaultHeaders: {
+          "HTTP-Referer": "https://thetradal.com",
+          "X-Title": "The Tradal"
+        }
+      });
+    }
+  }
+
+  async generate(prompt: string, systemPrompt: string, imageBase64?: string): Promise<string> {
+    if (!this.client) throw new Error("No OpenRouter Token Configured");
+
+    // Default to a high-tier free model
+    let model = "google/gemini-2.0-flash-exp:free";
+    let messages: any[] = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: prompt }
+    ];
+
+    if (imageBase64) {
+      // Geminis on OpenRouter support vision
+      messages[1].content = [
+        { type: "text", text: prompt },
+        {
+          type: "image_url",
+          image_url: {
+            url: imageBase64.startsWith('data:') ? imageBase64 : `data:image/jpeg;base64,${imageBase64}`
+          }
+        }
+      ];
+    }
+
+    try {
+      const completion = await this.client.chat.completions.create({
+        messages: messages,
+        model: model,
+        temperature: 0.7,
+      });
+      return completion.choices[0]?.message?.content || "";
+    } catch (err: any) {
+      console.warn(`[OpenRouter] Failed:`, err.message);
+      throw err;
+    }
+  }
+}
+
 // --- THE MANAGER (THE BRAIN) ---
 class AIManager {
   private providers: AIProvider[] = [];
 
   constructor() {
     // Priority Chain:
-    // 1. GitHub (GPT-4o) - Top Tier Vision
-    // 2. SambaNova (Llama 405B) - Top Tier Reasoning (Free)
-    // 3. DeepSeek (V3) - Top Tier Coding/Reasoning (Cheap/Free)
-    // 4. Gemini (Flash 2.0) - High Speed Vision
-    // 5. Groq (Llama 3.2) - High Speed Vision Backup
-    // 6. Cerebras (Llama 70b) - Instant Fallback
+    // 1. OpenRouter (User provided key!) - Aggregates everything
+    // 2. GitHub (GPT-4o) - Top Tier Vision
+    // 3. SambaNova (Llama 405B) - Top Tier Reasoning (Free)
+    // 4. DeepSeek (V3) - Top Tier Coding/Reasoning (Cheap/Free)
+    // 5. Gemini (Flash 2.0) - High Speed Vision
+    // 6. Groq (Llama 3.2) - High Speed Vision Backup
+    // 7. Cerebras (Llama 70b) - Instant Fallback
 
+    this.providers.push(new OpenRouterProvider());
     this.providers.push(new GithubProvider());
     this.providers.push(new SambaNovaProvider());
     this.providers.push(new DeepSeekProvider());

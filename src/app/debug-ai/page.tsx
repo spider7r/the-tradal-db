@@ -101,6 +101,7 @@ export default async function DebugAIPage() {
                     Global Cluster Status:
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>OpenRouter: {process.env.OPENROUTER_API_KEY ? '✅' : '❌'}</div>
                     <div>SambaNova: {process.env.SAMBANOVA_API_KEY ? '✅' : '❌'}</div>
                     <div>DeepSeek: {process.env.DEEPSEEK_API_KEY ? '✅' : '❌'}</div>
                     <div>HuggingFace: {process.env.HUGGINGFACE_API_KEY ? '✅' : '❌'}</div>
