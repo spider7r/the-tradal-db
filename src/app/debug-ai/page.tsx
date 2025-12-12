@@ -36,13 +36,26 @@ export default async function DebugAIPage() {
             const masked = `...${key.slice(-5)}`;
             try {
                 const genAI = new GoogleGenerativeAI(key);
-                const modelId = 'models/gemini-2.5-flash';
-                const model = genAI.getGenerativeModel({ model: modelId });
 
-                const result = await model.generateContent("Test. Reply 'OK'.");
-                const response = await result.response;
-                testResults.push(`Key #${i + 1} (${masked}): ✅ Success (${response.text()})`);
-                modelStatus = `At least one key is working.`;
+                // 1. Try Experimental 2.5 (Likely to Fail)
+                try {
+                    const model25 = genAI.getGenerativeModel({ model: 'models/gemini-2.5-flash' });
+                    const res25 = await model25.generateContent("Test 2.5");
+                    await res25.response;
+                    testResults.push(`Key #${i + 1} (${masked}): ✅ 2.5-Flash WORKING`);
+                    modelStatus = '2.5-Flash is healthy.';
+                } catch (e25: any) {
+                    // 2. Fallback to Stable 1.5
+                    try {
+                        const model15 = genAI.getGenerativeModel({ model: 'models/gemini-1.5-flash' });
+                        const res15 = await model15.generateContent("Test 1.5");
+                        await res15.response;
+                        testResults.push(`Key #${i + 1} (${masked}): ⚠️ 2.5 Failed (429) -> ✅ 1.5-Flash WORKING (Fallback)`);
+                        modelStatus = 'Fallback to 1.5-Flash is WORKING.';
+                    } catch (e15: any) {
+                        testResults.push(`Key #${i + 1} (${masked}): ❌ ALL MODELS FAILED (2.5: ${e25.response?.status}, 1.5: ${e15.response?.status})`);
+                    }
+                }
             } catch (e: any) {
                 testResults.push(`Key #${i + 1} (${masked}): ❌ Failed (${e.response?.status || e.message})`);
                 if (modelStatus === 'Unknown') modelStatus = `Error: ${e.response?.status || 'Unknown'}`;
