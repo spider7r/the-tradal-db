@@ -46,8 +46,66 @@ class GeminiProvider implements AIProvider {
   async generate(prompt: string, systemPrompt: string, imageBase64?: string): Promise<string> {
     if (this.keys.length === 0) throw new Error("No Gemini Keys Configured");
 
-    // Try keys in Round-Robin fashion
-    // We try at most 'this.keys.length' times.
+    // Models to try in order of priority
+    // 1. gemini-2.5-flash (Experimental, Faster, Smarter)
+    // 2. gemini-1.5-flash (Stable, Higher Quota)
+    const MODELS_TO_TRY = [
+      GEMINI_MODEL,              // Experimental 2.5
+      'models/gemini-1.5-flash'  // Stable Fallback
+    ];
+
+    let lastError: any = null;
+
+    for (const modelTarget of MODELS_TO_TRY) {
+      console.log(`[Gemini] Switching to Model: ${modelTarget}`);
+
+      // Reset iterator to try all keys for this model
+      let attempts = 0;
+      let iterator = this.currentIndex;
+
+      while (attempts < this.keys.length) {
+        const key = this.keys[iterator];
+        // Move index for next time (Round Robin globally)
+        this.currentIndex = (this.currentIndex + 1) % this.keys.length;
+
+        try {
+          console.log(`[Gemini] Attempt ${attempts + 1}/${this.keys.length} using key ...${key.slice(-5)} on ${modelTarget}`);
+          const genAI = new GoogleGenerativeAI(key);
+
+          // Ensure model has 'models/' prefix
+          const modelId = modelTarget.startsWith('models/') ? modelTarget : `models/${modelTarget}`;
+          const model = genAI.getGenerativeModel({ model: modelId });
+
+          let parts: any[] = [{ text: `${systemPrompt}\n\nUSER PROMPT:\n${prompt}` }];
+
+          if (imageBase64) {
+            const base64Clean = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+            parts.push({
+              inlineData: {
+                data: base64Clean,
+                mimeType: "image/jpeg"
+              }
+            });
+          }
+
+          const result = await model.generateContent(parts);
+          const response = await result.response;
+          return response.text();
+
+        } catch (err: any) {
+          console.error(`[Gemini Error] Key ...${key.slice(-5)} failed on ${modelTarget}. Status: ${err.response?.status || 'Unknown'} | Message: ${err.message}`);
+          lastError = err;
+
+          // If 429 (Rate Limit) try next key.
+          attempts++;
+          iterator = (iterator + 1) % this.keys.length; // Next key
+        }
+      }
+      // If we exit the while loop, it means ALL keys failed for this model.
+      // We continue to the next model in MODELS_TO_TRY...
+      console.warn(`[Gemini] All keys exhausted for ${modelTarget}. Falling back...`);
+    }
+
     throw lastError || new Error("All Gemini Keys & Models Exhausted");
   }
 }
