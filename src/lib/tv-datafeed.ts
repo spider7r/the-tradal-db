@@ -1,4 +1,5 @@
 import { fetchMarketDataAction, searchSymbolsAction } from '@/app/actions/market-data'
+import { Candle } from '@/lib/types'
 
 // Supported resolutions
 const RESOLUTIONS = ['1', '5', '15', '30', '60', '240', 'D', 'W']
@@ -66,7 +67,7 @@ export const TVDatafeed = {
             if (res === 'W') res = '1W'
 
             // Call Server Action
-            const candles = await fetchMarketDataAction(symbolInfo.name, res, from, to)
+            const candles = (await fetchMarketDataAction(symbolInfo.name, res, from, to)) as Candle[]
 
             if (!candles.length) {
                 onHistoryCallback([], { noData: true })
