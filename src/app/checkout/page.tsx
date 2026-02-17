@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getCheckoutUrl } from '../actions/billing'
 import { Loader2, Check, ShieldCheck, Zap, CreditCard, Lock, Sparkles, Clock, Bitcoin, BadgeCheck, User, ArrowLeft } from 'lucide-react'
@@ -87,7 +87,7 @@ function getChargeDate() {
     return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
 }
 
-export default function CheckoutPage() {
+function CheckoutPageContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const planParam = (searchParams.get('plan')?.toLowerCase() || 'starter') as PlanKey
@@ -399,5 +399,17 @@ export default function CheckoutPage() {
                 </div>
             </main>
         </div>
+    )
+}
+
+export default function CheckoutPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-[#050505] text-white flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-500" />
+            </div>
+        }>
+            <CheckoutPageContent />
+        </Suspense>
     )
 }
