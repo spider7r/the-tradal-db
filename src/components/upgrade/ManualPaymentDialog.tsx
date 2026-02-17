@@ -62,12 +62,13 @@ interface ManualPaymentDialogProps {
     open?: boolean
     onOpenChange?: (open: boolean) => void
     trigger?: React.ReactNode
+    initialAmount?: string
 }
 
-export function ManualPaymentDialog({ open, onOpenChange, trigger }: ManualPaymentDialogProps) {
+export function ManualPaymentDialog({ open, onOpenChange, trigger, initialAmount = '53.90' }: ManualPaymentDialogProps) {
     const [step, setStep] = useState<'methods' | 'qr' | 'details'>('methods')
     const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null)
-    const [amount, setAmount] = useState('53.90')
+    const [amount, setAmount] = useState(initialAmount)
     const [txid, setTxid] = useState('')
     const [file, setFile] = useState<File | null>(null)
     const [copied, setCopied] = useState(false)
@@ -173,7 +174,7 @@ export function ManualPaymentDialog({ open, onOpenChange, trigger }: ManualPayme
                                             {selectedMethod.address}
                                         </div>
                                         <button onClick={copyAddress} className="p-2 hover:bg-zinc-800 rounded-lg transition-colors">
-                                            {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4 text-zinc-500" />}
+                                            {copied ? <Check className="h-4 w-4 text-[#00E676]" /> : <Copy className="h-4 w-4 text-zinc-500" />}
                                         </button>
                                     </div>
                                 </div>
@@ -195,13 +196,13 @@ export function ManualPaymentDialog({ open, onOpenChange, trigger }: ManualPayme
                                     <p className="font-medium text-zinc-500">Procedure:</p>
                                     <ol className="space-y-2 list-decimal list-outside ml-4">
                                         <li>Complete the transfer to the {selectedMethod.name} deposit address.</li>
-                                        <li>Once you get the confirmation, then enter the amount transferred along with the Proof of Transfer. - <span className="text-emerald-500 cursor-pointer hover:underline" onClick={() => setStep('details')}>Proceed</span></li>
+                                        <li>Once you get the confirmation, then enter the amount transferred along with the Proof of Transfer. - <span className="text-[#00E676] cursor-pointer hover:underline" onClick={() => setStep('details')}>Proceed</span></li>
                                         <li>We will verify your transaction and automatically approve your Deposit.</li>
                                     </ol>
                                 </div>
 
                                 <div className="bg-[#161B22] p-3 rounded-lg flex gap-3 items-start border border-zinc-800/50">
-                                    <Smartphone className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
+                                    <Smartphone className="h-5 w-5 text-[#00E676] shrink-0 mt-0.5" />
                                     <p className="text-[10px] text-zinc-400 leading-relaxed">
                                         Point your smartphone's camera at the QR code provided by the deposit service. Ensure the QR code is within the frame and clearly visible.
                                     </p>
@@ -209,7 +210,7 @@ export function ManualPaymentDialog({ open, onOpenChange, trigger }: ManualPayme
 
                                 <button
                                     onClick={() => setStep('details')}
-                                    className="w-full py-3.5 bg-[#2EA07B] hover:bg-[#258766] text-white font-bold rounded-xl transition-colors shadow-lg shadow-emerald-900/20"
+                                    className="w-full py-3.5 bg-[#00E676] hover:bg-[#00C853] text-black font-bold rounded-xl transition-colors shadow-lg shadow-[#00E676]/20"
                                 >
                                     Continue
                                 </button>
@@ -225,7 +226,7 @@ export function ManualPaymentDialog({ open, onOpenChange, trigger }: ManualPayme
                                         type="text"
                                         value={amount}
                                         onChange={(e) => setAmount(e.target.value)}
-                                        className="w-full bg-[#0D1117] border border-zinc-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#2EA07B] transition-colors"
+                                        className="w-full bg-[#0D1117] border border-zinc-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#00E676] transition-colors"
                                     />
                                 </div>
 
@@ -236,17 +237,17 @@ export function ManualPaymentDialog({ open, onOpenChange, trigger }: ManualPayme
                                         placeholder="Enter TXID"
                                         value={txid}
                                         onChange={(e) => setTxid(e.target.value)}
-                                        className="w-full bg-[#0D1117] border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-zinc-600 focus:outline-none focus:border-[#2EA07B] transition-colors"
+                                        className="w-full bg-[#0D1117] border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-zinc-600 focus:outline-none focus:border-[#00E676] transition-colors"
                                     />
                                 </div>
 
                                 <div className="space-y-2">
                                     <label className="text-block w-full">
-                                        <div className="border border-dashed border-emerald-900/50 bg-[#0D1117] hover:bg-[#161B22] rounded-xl p-8 flex flex-col items-center justify-center gap-4 cursor-pointer transition-colors group h-48 relative overflow-hidden">
+                                        <div className="border border-dashed border-[#00E676]/50 bg-[#0D1117] hover:bg-[#161B22] rounded-xl p-8 flex flex-col items-center justify-center gap-4 cursor-pointer transition-colors group h-48 relative overflow-hidden">
                                             {file ? (
                                                 <div className="z-10 text-center">
-                                                    <Check className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
-                                                    <span className="text-sm font-medium text-emerald-400">{file.name}</span>
+                                                    <Check className="h-8 w-8 text-[#00E676] mx-auto mb-2" />
+                                                    <span className="text-sm font-medium text-[#00E676]">{file.name}</span>
                                                     <p className="text-xs text-zinc-500 mt-1">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                                                 </div>
                                             ) : (
@@ -255,13 +256,13 @@ export function ManualPaymentDialog({ open, onOpenChange, trigger }: ManualPayme
                                                         <Upload className="h-6 w-6 text-zinc-400 group-hover:text-white" />
                                                     </div>
                                                     <div className="text-center z-10">
-                                                        <p className="text-sm text-zinc-300 font-medium">Drag and drop your screenshot(s) or <span className="text-emerald-500 underline">Browse</span></p>
+                                                        <p className="text-sm text-zinc-300 font-medium">Drag and drop your screenshot(s) or <span className="text-[#00E676] underline">Browse</span></p>
                                                         <p className="text-[10px] text-zinc-500 mt-1 uppercase font-bold tracking-wider">JPEG, PNG · Max 1 file(s) · 5 MB per file</p>
                                                     </div>
                                                 </>
                                             )}
                                             {/* Gradient Overlay */}
-                                            <div className="absolute inset-0 bg-gradient-to-t from-emerald-900/10 to-transparent pointer-events-none" />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-[#00E676]/10 to-transparent pointer-events-none" />
                                         </div>
                                         <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
                                     </label>
@@ -270,7 +271,7 @@ export function ManualPaymentDialog({ open, onOpenChange, trigger }: ManualPayme
                                 <button
                                     onClick={handleSubmit}
                                     disabled={!txid || !file}
-                                    className="w-full py-3.5 bg-[#2EA07B] hover:bg-[#258766] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-colors shadow-lg shadow-emerald-900/20 mt-auto"
+                                    className="w-full py-3.5 bg-[#00E676] hover:bg-[#00C853] disabled:opacity-50 disabled:cursor-not-allowed text-black font-bold rounded-xl transition-colors shadow-lg shadow-[#00E676]/20 mt-auto"
                                 >
                                     Submit
                                 </button>

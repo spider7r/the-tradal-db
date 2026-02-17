@@ -24,9 +24,18 @@ export default async function DashboardPage({
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { user: authUser } } = await supabase.auth.getUser()
 
-    if (!user) return null
+    // GUEST MODE FALLBACK (matches layout.tsx)
+    const user = authUser || {
+        id: 'guest-user-id',
+        email: 'guest@tradal.com',
+        user_metadata: { full_name: 'Guest Trader' }
+    }
+
+    if (!authUser) {
+        return <EmptyDashboard />
+    }
 
     // Fetch Achievements
     const { data: achievements } = await supabase

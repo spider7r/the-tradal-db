@@ -41,6 +41,31 @@ export async function createBacktestSession(formData: {
         throw new Error('Unauthorized')
     }
 
+    // [STRICT LIMITS] Check Backtest Session Limit
+    const { data: userData } = await supabase
+        .from('users')
+        .select('backtest_count_limit, plan_tier')
+        .eq('id', user.id)
+        .single()
+
+    const limit = userData?.backtest_count_limit ?? 3 // Default to Free limit if null
+
+    // Count existing sessions
+    const { count, error: countError } = await supabase
+        .from('backtest_sessions')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+
+    if (countError) {
+        console.error('Error checking limits:', countError)
+        throw new Error('Failed to verify check limits')
+    }
+
+    if ((count || 0) >= limit) {
+        // We can throw a specific error string that the UI can catch and show the upgrade dialog
+        throw new Error(`LIMIT_REACHED: You have reached the limit of ${limit} backtest sessions for the ${userData?.plan_tier || 'Free'} plan. Upgrade to create more.`)
+    }
+
     // 1. Calculate Range & Fetch Data
     let candleData: any[] = []
     try {

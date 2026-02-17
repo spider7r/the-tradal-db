@@ -25,6 +25,35 @@ export async function getTrades(mode: 'Live' | 'Backtest' | 'Paper' = 'Live') {
     return { success: true, data: trades }
 }
 
+async function checkTradeLimit(supabase: any, userId: string) {
+    // 1. Get User Plan
+    const { data: user } = await supabase
+        .from('users')
+        .select('plan_tier')
+        .eq('id', userId)
+        .single()
+
+    // Default to FREE if no plan found (safe default)
+    const plan = user?.plan_tier || 'FREE'
+
+    // 2. Check Limits
+    if (plan === 'FREE') {
+        const { count, error } = await supabase
+            .from('trades')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userId)
+
+        if (error) {
+            console.error('Error checking trade limit:', error)
+            return // Allow if we can't check
+        }
+
+        if (count && count >= 50) {
+            throw new Error('Free plan limit reached (50 trades). Please upgrade to log more trades.')
+        }
+    }
+}
+
 export async function createTrade(formData: FormData) {
     const supabase = await createClient()
 
@@ -82,6 +111,13 @@ export async function createTrade(formData: FormData) {
     const accountStatus = await checkAccountStatus(supabase, accountId)
     if (accountStatus.status === 'FAILED') {
         return { error: `Trade blocked: ${accountStatus.reason}` }
+    }
+
+    // Check Plan Limits (Free Plan = 50 Trades)
+    try {
+        await checkTradeLimit(supabase, user.id)
+    } catch (e: any) {
+        return { error: e.message }
     }
 
     // Calculate P&L if closed

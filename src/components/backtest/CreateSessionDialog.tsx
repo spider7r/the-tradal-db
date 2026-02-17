@@ -7,109 +7,16 @@ import { X, ChevronLeft, ChevronRight, Check, Zap } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { createBacktestSession, getStrategiesList, fetchMarketData } from '@/app/(dashboard)/backtest/actions'
-import { ChallengeRules } from './PropFirmSettings'
-import { Step1SessionType, Step2AssetTime, Step3Config, Step4Review } from './SessionWizardSteps'
-import { motion, AnimatePresence } from 'framer-motion'
-import { localDateToUTC } from '@/utils/date-utils'
-import {
-    startPrefetch,
-    getPrefetchCache,
-    subscribePrefetchCache,
-    clearPrefetchCache,
-    getServerSnapshot
-} from '@/lib/prefetch-cache'
-
-interface CreateSessionDialogProps {
-    open: boolean
-    onOpenChange: (open: boolean) => void
-}
+// ... existing imports
+import { OnboardingPricingDialog } from '@/components/upgrade/OnboardingPricingDialog'
 
 export function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogProps) {
     const router = useRouter()
     const [step, setStep] = useState(1)
     const [isLoading, setIsLoading] = useState(false)
+    const [showPricing, setShowPricing] = useState(false)
 
-    // Form State
-    const [sessionType, setSessionType] = useState<'BACKTEST' | 'PROP_FIRM'>('BACKTEST')
-    const [name, setName] = useState('')
-    const [balance, setBalance] = useState('100000')
-    const [asset, setAsset] = useState('')
-    const [startDate, setStartDate] = useState('')
-    const [endDate, setEndDate] = useState('')
-    const [timezone, setTimezone] = useState('America/New_York')
-    const [layout, setLayout] = useState('')
-    const [strategyId, setStrategyId] = useState('')
-    const [strategies, setStrategies] = useState<any[]>([])
-
-    // Prop Firm State
-    const [challengeRules, setChallengeRules] = useState<ChallengeRules>({
-        dailyDrawdown: 5,
-        maxDrawdown: 10,
-        profitTarget: 10,
-        timeLimit: 30,
-        minTradingDays: 5
-    })
-
-    // ═══════════════════════════════════════════════════════════════
-    // PRE-FETCH: Subscribe to global prefetch cache state
-    // ═══════════════════════════════════════════════════════════════
-    // PRE-FETCH: Subscribe to global prefetch cache state
-    // ═══════════════════════════════════════════════════════════════
-    const prefetchState = useSyncExternalStore(subscribePrefetchCache, getPrefetchCache, getServerSnapshot)
-    const prefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-    // PRE-FETCH: Trigger when asset + dates are complete
-    useEffect(() => {
-        // Clear previous timer
-        if (prefetchTimerRef.current) clearTimeout(prefetchTimerRef.current)
-
-        // Need all three fields
-        if (!asset || !startDate || !endDate) return
-
-        // Check if pair is forex (our prefetch target)
-        const cleanPair = asset.replace('BINANCE:', '').replace('FX:', '').toUpperCase()
-        const isCrypto = cleanPair.endsWith('USDT') || cleanPair.endsWith('BUSD')
-        if (isCrypto) return // Skip crypto for now — Dukascopy is forex only
-
-        // Debounce 800ms to avoid spam while user types dates
-        prefetchTimerRef.current = setTimeout(() => {
-            console.log('[CreateSessionDialog] 🚀 Starting background prefetch!')
-            startPrefetch(asset, startDate, endDate, fetchMarketData)
-        }, 800)
-
-        return () => {
-            if (prefetchTimerRef.current) clearTimeout(prefetchTimerRef.current)
-        }
-    }, [asset, startDate, endDate])
-
-    // Clean up on dialog close
-    useEffect(() => {
-        if (!open) {
-            // Don't clear cache on close — we want it to persist until session loads!
-            if (prefetchTimerRef.current) clearTimeout(prefetchTimerRef.current)
-        }
-    }, [open])
-
-    useEffect(() => {
-        if (open) {
-            setStep(1)
-            getStrategiesList().then(setStrategies)
-        }
-    }, [open])
-
-    const handleNext = () => {
-        if (step === 2 && (!asset || !startDate || !endDate)) {
-            toast.error('Please select an asset and date range')
-            return
-        }
-        if (step === 3 && (!name || !balance)) {
-            toast.error('Please enter a name and balance')
-            return
-        }
-        setStep(s => s + 1)
-    }
-
-    const handleBack = () => setStep(s => s - 1)
+    // ... existing state ...
 
     const handleCreate = async () => {
         setIsLoading(true)
@@ -133,164 +40,169 @@ export function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogP
             router.push(`/backtest/session/${session.id}`)
         } catch (error: any) {
             console.error('Session creation error:', error)
-            toast.error(error.message || 'Failed to create session')
+            if (error.message && error.message.includes('LIMIT_REACHED')) {
+                // Show pricing dialog
+                setShowPricing(true)
+                // Optional: Show toast explaining why
+                toast.error(error.message.replace('LIMIT_REACHED: ', ''))
+            } else {
+                toast.error(error.message || 'Failed to create session')
+            }
         } finally {
             setIsLoading(false)
         }
     }
 
-    // Prefetch status indicator
-    const showPrefetchStatus = asset && startDate && endDate && prefetchState.status !== 'idle'
-    const prefetchLabel = prefetchState.status === 'loading'
-        ? `⚡ Pre-loading data... ${prefetchState.progress}%`
-        : prefetchState.status === 'done'
-            ? `✅ Data pre-loaded (${prefetchState.data1m?.length?.toLocaleString()} candles)`
-            : prefetchState.status === 'error'
-                ? '❌ Pre-load failed (will retry on launch)'
-                : ''
+    // ... existing render ...
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[600px] bg-[#0A0A0A] border-white/5 text-white p-0 gap-0 overflow-hidden min-h-[500px] flex flex-col w-[95vw]">
-                <DialogTitle className="sr-only">Create New Session</DialogTitle>
-                {/* Header */}
-                <div className="flex items-center justify-between p-4 sm:p-6 pb-2 sm:pb-4 border-b border-white/5">
-                    <div className="flex items-center gap-2">
-                        {step > 1 && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8 -ml-2 text-[#94A3B8] hover:text-white" onClick={handleBack}>
-                                <ChevronLeft className="w-5 h-5" />
-                            </Button>
-                        )}
-                        <span className="text-xs sm:text-sm font-bold text-[#94A3B8]">Step {step} of 4</span>
+        <>
+            <Dialog open={open} onOpenChange={onOpenChange}>
+                {/* ... existing dialog content ... */}
+                <DialogContent className="sm:max-w-[600px] bg-[#0A0A0A] border-white/5 text-white p-0 gap-0 overflow-hidden min-h-[500px] flex flex-col w-[95vw]">
+                    <DialogTitle className="sr-only">Create New Session</DialogTitle>
+                    {/* Header */}
+                    <div className="flex items-center justify-between p-4 sm:p-6 pb-2 sm:pb-4 border-b border-white/5">
+                        <div className="flex items-center gap-2">
+                            {step > 1 && (
+                                <Button variant="ghost" size="icon" className="h-8 w-8 -ml-2 text-[#94A3B8] hover:text-white" onClick={handleBack}>
+                                    <ChevronLeft className="w-5 h-5" />
+                                </Button>
+                            )}
+                            <span className="text-xs sm:text-sm font-bold text-[#94A3B8]">Step {step} of 4</span>
+                        </div>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-[#94A3B8] hover:text-white" onClick={() => onOpenChange(false)}>
+                            <X className="w-5 h-5" />
+                        </Button>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-[#94A3B8] hover:text-white" onClick={() => onOpenChange(false)}>
-                        <X className="w-5 h-5" />
-                    </Button>
-                </div>
 
-                {/* Progress Bar */}
-                <div className="h-1 bg-white/5 w-full">
-                    <motion.div
-                        className="h-full bg-[#00E676]"
-                        initial={{ width: '25%' }}
-                        animate={{ width: `${step * 25}%` }}
-                        transition={{ duration: 0.3 }}
-                    />
-                </div>
-
-                {/* Content */}
-                <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
-                    <AnimatePresence mode="wait">
+                    {/* Progress Bar */}
+                    <div className="h-1 bg-white/5 w-full">
                         <motion.div
-                            key={step}
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
-                            transition={{ duration: 0.2 }}
-                        >
-                            {step === 1 && (
-                                <Step1SessionType
-                                    selectedType={sessionType}
-                                    onSelect={(type) => {
-                                        setSessionType(type)
-                                        setStep(2)
-                                    }}
-                                />
-                            )}
-                            {step === 2 && (
-                                <Step2AssetTime
-                                    asset={asset} setAsset={setAsset}
-                                    startDate={startDate} setStartDate={setStartDate}
-                                    endDate={endDate} setEndDate={setEndDate}
-                                    timezone={timezone} setTimezone={setTimezone}
-                                />
-                            )}
-                            {step === 3 && (
-                                <Step3Config
-                                    sessionType={sessionType}
-                                    name={name} setName={setName}
-                                    balance={balance} setBalance={setBalance}
-                                    strategyId={strategyId} setStrategyId={setStrategyId}
-                                    strategies={strategies}
-                                    challengeRules={challengeRules} setChallengeRules={setChallengeRules}
-                                />
-                            )}
-                            {step === 4 && (
-                                <Step4Review
-                                    sessionType={sessionType}
-                                    name={name}
-                                    asset={asset}
-                                    balance={balance}
-                                    startDate={startDate}
-                                    endDate={endDate}
-                                />
-                            )}
-                        </motion.div>
-                    </AnimatePresence>
-                </div>
+                            className="h-full bg-[#00E676]"
+                            initial={{ width: '25%' }}
+                            animate={{ width: `${step * 25}%` }}
+                            transition={{ duration: 0.3 }}
+                        />
+                    </div>
 
-                {/* Footer */}
-                <div className="p-6 pt-4 border-t border-white/5 bg-[#050505]">
-                    {/* Pre-fetch Status Bar */}
-                    {showPrefetchStatus && (
-                        <div className="mb-3 flex items-center gap-2">
-                            {prefetchState.status === 'loading' && (
-                                <div className="flex-1 flex items-center gap-2">
-                                    <Zap className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                                    <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
-                                        <motion.div
-                                            className="h-full bg-gradient-to-r from-amber-400 to-[#00E676] rounded-full"
-                                            initial={{ width: '0%' }}
-                                            animate={{ width: `${prefetchState.progress}%` }}
-                                            transition={{ duration: 0.5 }}
-                                        />
+                    {/* Content */}
+                    <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={step}
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                {step === 1 && (
+                                    <Step1SessionType
+                                        selectedType={sessionType}
+                                        onSelect={(type) => {
+                                            setSessionType(type)
+                                            setStep(2)
+                                        }}
+                                    />
+                                )}
+                                {step === 2 && (
+                                    <Step2AssetTime
+                                        asset={asset} setAsset={setAsset}
+                                        startDate={startDate} setStartDate={setStartDate}
+                                        endDate={endDate} setEndDate={setEndDate}
+                                        timezone={timezone} setTimezone={setTimezone}
+                                    />
+                                )}
+                                {step === 3 && (
+                                    <Step3Config
+                                        sessionType={sessionType}
+                                        name={name} setName={setName}
+                                        balance={balance} setBalance={setBalance}
+                                        strategyId={strategyId} setStrategyId={setStrategyId}
+                                        strategies={strategies}
+                                        challengeRules={challengeRules} setChallengeRules={setChallengeRules}
+                                    />
+                                )}
+                                {step === 4 && (
+                                    <Step4Review
+                                        sessionType={sessionType}
+                                        name={name}
+                                        asset={asset}
+                                        balance={balance}
+                                        startDate={startDate}
+                                        endDate={endDate}
+                                    />
+                                )}
+                            </motion.div>
+                        </AnimatePresence>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="p-6 pt-4 border-t border-white/5 bg-[#050505]">
+                        {/* Pre-fetch Status Bar */}
+                        {showPrefetchStatus && (
+                            <div className="mb-3 flex items-center gap-2">
+                                {prefetchState.status === 'loading' && (
+                                    <div className="flex-1 flex items-center gap-2">
+                                        <Zap className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                                        <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                            <motion.div
+                                                className="h-full bg-gradient-to-r from-amber-400 to-[#00E676] rounded-full"
+                                                initial={{ width: '0%' }}
+                                                animate={{ width: `${prefetchState.progress}%` }}
+                                                transition={{ duration: 0.5 }}
+                                            />
+                                        </div>
+                                        <span className="text-[10px] text-amber-400 font-mono">{prefetchState.progress}%</span>
                                     </div>
-                                    <span className="text-[10px] text-amber-400 font-mono">{prefetchState.progress}%</span>
-                                </div>
-                            )}
-                            {prefetchState.status === 'done' && (
-                                <div className="flex items-center gap-1.5 text-[10px] text-[#00E676] font-mono">
-                                    <Check className="w-3 h-3" />
-                                    Data pre-loaded · {prefetchState.data1m?.length?.toLocaleString()} candles
-                                </div>
-                            )}
-                            {prefetchState.status === 'error' && (
-                                <span className="text-[10px] text-red-400 font-mono">Pre-load failed · will retry on launch</span>
+                                )}
+                                {prefetchState.status === 'done' && (
+                                    <div className="flex items-center gap-1.5 text-[10px] text-[#00E676] font-mono">
+                                        <Check className="w-3 h-3" />
+                                        Data pre-loaded · {prefetchState.data1m?.length?.toLocaleString()} candles
+                                    </div>
+                                )}
+                                {prefetchState.status === 'error' && (
+                                    <span className="text-[10px] text-red-400 font-mono">Pre-load failed · will retry on launch</span>
+                                )}
+                            </div>
+                        )}
+
+                        <div className="flex justify-between items-center">
+                            <Button
+                                variant="ghost"
+                                className="text-[#94A3B8] hover:text-white"
+                                onClick={() => onOpenChange(false)}
+                            >
+                                Cancel
+                            </Button>
+
+                            {step < 4 ? (
+                                <Button
+                                    className="bg-white text-black hover:bg-white/90 font-bold"
+                                    onClick={handleNext}
+                                    disabled={step === 1} // Step 1 auto-advances
+                                >
+                                    Next Step <ChevronRight className="w-4 h-4 ml-2" />
+                                </Button>
+                            ) : (
+                                <Button
+                                    className="bg-[#00E676] hover:bg-[#00C853] text-black font-bold min-w-[140px]"
+                                    onClick={handleCreate}
+                                    disabled={isLoading}
+                                >
+                                    {isLoading ? 'Launching...' : prefetchState.status === 'done' ? '⚡ Instant Launch' : 'Launch Session'}
+                                    {!isLoading && <Check className="w-4 h-4 ml-2" />}
+                                </Button>
                             )}
                         </div>
-                    )}
-
-                    <div className="flex justify-between items-center">
-                        <Button
-                            variant="ghost"
-                            className="text-[#94A3B8] hover:text-white"
-                            onClick={() => onOpenChange(false)}
-                        >
-                            Cancel
-                        </Button>
-
-                        {step < 4 ? (
-                            <Button
-                                className="bg-white text-black hover:bg-white/90 font-bold"
-                                onClick={handleNext}
-                                disabled={step === 1} // Step 1 auto-advances
-                            >
-                                Next Step <ChevronRight className="w-4 h-4 ml-2" />
-                            </Button>
-                        ) : (
-                            <Button
-                                className="bg-[#00E676] hover:bg-[#00C853] text-black font-bold min-w-[140px]"
-                                onClick={handleCreate}
-                                disabled={isLoading}
-                            >
-                                {isLoading ? 'Launching...' : prefetchState.status === 'done' ? '⚡ Instant Launch' : 'Launch Session'}
-                                {!isLoading && <Check className="w-4 h-4 ml-2" />}
-                            </Button>
-                        )}
                     </div>
-                </div>
-            </DialogContent>
-        </Dialog>
+                </DialogContent>
+            </Dialog>
+            <OnboardingPricingDialog open={showPricing} onOpenChange={setShowPricing} />
+        </>
+    )
+}
     )
 }
 

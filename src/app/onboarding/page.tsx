@@ -1,119 +1,177 @@
 'use client'
 
-import { Check } from 'lucide-react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ManualPaymentDialog } from '@/components/upgrade/ManualPaymentDialog'
 
 export default function OnboardingPage() {
     const router = useRouter()
+    const [selectedPlan, setSelectedPlan] = useState<{ name: string; price: string } | null>(null)
+    const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly')
 
-    const handlePlanSelect = (plan: string) => {
-        if (plan === 'STARTER') {
-            // For starter, we just mark onboarding complete? Or do we require checkout?
-            // Since price is $0, maybe just redirect to dashboard directly?
-            // But let's assume valid flow for now.
-            // Actually user asked for "Checkout page".
-            router.push(`/checkout?plan=${plan}`)
-        } else {
-            router.push(`/checkout?plan=${plan}`)
+    const plans = [
+        {
+            name: "STARTER",
+            price: billingCycle === 'monthly' ? "19" : "15",
+            desc: "For beginners ready to commit.",
+            features: ["Unlimited Trades", "Basic Analytics", "3 AI Analysis / Day", "Manual Journaling"],
+            cta: "Start Now",
+            highlight: false,
+            popular: false
+        },
+        {
+            name: "GROWTH",
+            price: billingCycle === 'monthly' ? "29" : "24",
+            desc: "For serious traders seeking consistency.",
+            features: ["Everything in Starter", "Unlimited Auto-Sync", "Full AI Coach Access", "Prop Firm Guardian", "Advanced Strategy Tracking"],
+            cta: "Start 7-Day Free Trial",
+            highlight: true, // Green Style
+            popular: true
+        },
+        {
+            name: "ENTERPRISE",
+            price: billingCycle === 'monthly' ? "59" : "49",
+            desc: "For funded traders & teams.",
+            features: ["Everything in Growth (7-Day Trial)", "Multi-Account Aggregation", "Mentor Access (Discord)", "Risk Model Templates", "API Access"],
+            cta: "Start 7-Day Free Trial",
+            highlight: false, // Standard Style
+            popular: false
         }
+    ]
+
+    const handlePlanSelect = (plan: typeof plans[0]) => {
+        router.push(`/checkout?plan=${plan.name.toLowerCase()}`)
+    }
+
+    const handleFreeTier = () => {
+        // Redirect to dashboard for free tier
+        router.push('/dashboard')
     }
 
     return (
-        <div className="min-h-screen bg-black flex items-center justify-center p-4">
-            <div className="max-w-7xl w-full grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="min-h-screen bg-black text-white p-4 md:p-8 flex items-center justify-center">
 
-                {/* STARTER */}
-                <div className="bg-[#0b0b0b] rounded-[30px] p-8 border border-zinc-900 flex flex-col h-full hover:border-zinc-800 transition-colors">
-                    <div className="mb-8">
-                        <h3 className="text-white font-bold text-lg mb-4 uppercase tracking-wider">Starter</h3>
-                        <div className="flex items-baseline gap-1 mb-4">
-                            <span className="text-5xl font-bold text-white tracking-tighter">$0</span>
-                            <span className="text-zinc-500 font-medium">/mo</span>
-                        </div>
-                        <p className="text-zinc-500 text-sm leading-relaxed">
-                            For beginners learning the ropes.
-                        </p>
+            {/* Manual Payment Modal Removed */}
+
+            <div className="max-w-6xl w-full space-y-12">
+
+                {/* Header & Toggle */}
+                <div className="text-center space-y-6">
+                    <div>
+                        <h2 className="text-3xl md:text-5xl font-black text-white mb-4 uppercase tracking-tight">Simple Pricing.</h2>
+                        <p className="text-zinc-400 font-medium text-lg">Invest in your edge. Cancel anytime.</p>
                     </div>
 
-                    <button
-                        onClick={() => handlePlanSelect('STARTER')}
-                        className="w-full py-4 rounded-xl border border-zinc-800 text-white font-bold hover:bg-zinc-900 transition-colors mb-8"
-                    >
-                        Start Free
-                    </button>
-
-                    <div className="space-y-4">
-                        {['Manual Journaling', 'Basic Analytics', '50 Trades / Month', 'No AI Analysis'].map((feat, i) => (
-                            <div key={i} className="flex items-center gap-3">
-                                <Check className="h-4 w-4 text-zinc-600" />
-                                <span className="text-sm text-zinc-400">{feat}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* PROFESSIONAL (Green) */}
-                <div className="bg-[#0b0b0b] rounded-[30px] p-8 border-2 border-[#1DB954] relative flex flex-col h-full transform lg:-translate-y-4 lg:z-10 shadow-2xl shadow-[#1DB954]/10">
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#1DB954] text-black text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-widest">
-                        Most Popular
-                    </div>
-
-                    <div className="mb-8 mt-2">
-                        <h3 className="text-white font-bold text-lg mb-4 uppercase tracking-wider">Professional</h3>
-                        <div className="flex items-baseline gap-1 mb-4">
-                            <span className="text-5xl font-bold text-white tracking-tighter">$29</span>
-                            <span className="text-zinc-500 font-medium">/mo</span>
-                        </div>
-                        <p className="text-zinc-400 text-sm leading-relaxed">
-                            For serious traders seeking consistency.
-                        </p>
-                    </div>
-
-                    <button
-                        onClick={() => handlePlanSelect('PROFESSIONAL')}
-                        className="w-full py-4 rounded-xl bg-[#1DB954] hover:bg-[#1ed760] text-black font-black uppercase tracking-wider transition-colors mb-8 shadow-lg shadow-green-900/20"
-                    >
-                        Start 14-Day Trial
-                    </button>
-
-                    <div className="space-y-4 flex-1">
-                        {['Unlimited Auto-Sync', 'Full AI Coach Access', 'Prop Firm Guardian', 'Advanced Strategy Tracking', 'Priority Support'].map((feat, i) => (
-                            <div key={i} className="flex items-center gap-3">
-                                <Check className="h-4 w-4 text-[#1DB954]" />
-                                <span className="text-sm text-white font-medium">{feat}</span>
-                            </div>
-                        ))}
+                    <div className="inline-flex bg-[#111] p-1 rounded-lg border border-white/10">
+                        <button
+                            onClick={() => setBillingCycle('monthly')}
+                            className={cn(
+                                "px-6 py-2 rounded-md text-sm font-black transition-all",
+                                billingCycle === 'monthly' ? "bg-white text-black shadow-lg" : "text-zinc-400 hover:text-white"
+                            )}
+                        >
+                            Monthly
+                        </button>
+                        <button
+                            onClick={() => setBillingCycle('yearly')}
+                            className={cn(
+                                "px-6 py-2 rounded-md text-sm font-black transition-all",
+                                billingCycle === 'yearly' ? "bg-white text-black shadow-lg" : "text-zinc-400 hover:text-white"
+                            )}
+                        >
+                            Yearly <span className="text-[10px] text-[#00E676] ml-1 font-black">-20%</span>
+                        </button>
                     </div>
                 </div>
 
-                {/* ELITE */}
-                <div className="bg-[#0b0b0b] rounded-[30px] p-8 border border-zinc-900 flex flex-col h-full hover:border-zinc-800 transition-colors">
-                    <div className="mb-8">
-                        <h3 className="text-white font-bold text-lg mb-4 uppercase tracking-wider">Elite</h3>
-                        <div className="flex items-baseline gap-1 mb-4">
-                            <span className="text-5xl font-bold text-white tracking-tighter">$59</span>
-                            <span className="text-zinc-500 font-medium">/mo</span>
+                {/* Pricing Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {plans.map((plan, i) => (
+                        <div
+                            key={i}
+                            className={cn(
+                                "relative p-8 rounded-3xl border flex flex-col transition-all duration-300",
+                                plan.highlight
+                                    ? "bg-[#0A0A0A] border-[#00E676]/50 shadow-[0_0_40px_-10px_rgba(0,230,118,0.15)] md:scale-105 z-10"
+                                    : "bg-[#080808] border-white/5 hover:border-white/10"
+                            )}
+                        >
+                            {plan.popular && (
+                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#00E676] text-black text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg">
+                                    Most Popular
+                                </div>
+                            )}
+
+                            <h3 className="text-sm font-black text-white mb-2 uppercase tracking-wider">{plan.name}</h3>
+                            <div className="flex items-baseline gap-1 mb-2">
+                                <span className="text-5xl font-black text-white tracking-tighter">${plan.price}</span>
+                                <span className="text-zinc-500 font-bold text-sm">/mo</span>
+                            </div>
+                            <p className="text-zinc-400 text-xs font-medium mb-8 min-h-[40px]">{plan.desc}</p>
+
+                            <button
+                                onClick={() => handlePlanSelect(plan)}
+                                className={cn(
+                                    "w-full py-4 rounded-xl font-bold text-sm uppercase tracking-wide transition-all mb-8",
+                                    plan.highlight
+                                        ? "bg-[#00E676] hover:bg-[#00C853] text-black shadow-lg shadow-[#00E676]/20"
+                                        : "border border-white/10 hover:bg-white/5 text-white"
+                                )}
+                            >
+                                {plan.cta}
+                            </button>
+
+                            <ul className="space-y-4 flex-1">
+                                {plan.features.map((feat, idx) => (
+                                    <li key={idx} className="flex items-start gap-3 text-xs font-medium text-zinc-400">
+                                        <Check className={cn("h-4 w-4 shrink-0", plan.highlight ? "text-[#00E676]" : "text-zinc-600")} />
+                                        <span className="leading-tight">{feat}</span>
+                                    </li>
+                                ))}
+                            </ul>
                         </div>
-                        <p className="text-zinc-500 text-sm leading-relaxed">
-                            For funded traders managing multi-accounts.
-                        </p>
+                    ))}
+                </div>
+
+                {/* Forever Free Tier */}
+                <div className="rounded-3xl border border-white/10 bg-[#080808] p-8 md:p-10 relative overflow-hidden">
+                    {/* Badge */}
+                    <div className="absolute top-8 left-8 md:static md:inline-block md:mb-4">
+                        <div className="inline-flex items-center px-3 py-1 rounded-full border border-zinc-800 bg-zinc-900/50 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                            Forever Free Tier
+                        </div>
                     </div>
 
-                    <button
-                        onClick={() => handlePlanSelect('ELITE')}
-                        className="w-full py-4 rounded-xl border border-zinc-800 text-white font-bold hover:bg-zinc-900 transition-colors mb-8 hover:border-zinc-700"
-                    >
-                        Get Elite Access
-                    </button>
+                    <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12 mt-12 md:mt-0">
+                        <div className="flex-1 text-center md:text-left">
+                            <h3 className="text-2xl md:text-3xl font-black text-white mb-4">Just Starting Out?</h3>
+                            <p className="text-zinc-400 text-sm leading-relaxed max-w-md">
+                                Experience the power of Tradal with our generous free tier. No credit card required.
+                            </p>
+                        </div>
 
-                    <div className="space-y-4">
-                        {['Everything in Pro', 'Multi-Account Aggregation', 'Mentor Access (Discord)', 'Risk Model Templates', 'API Access'].map((feat, i) => (
-                            <div key={i} className="flex items-center gap-3">
-                                <Check className="h-4 w-4 text-zinc-500" />
-                                <span className="text-sm text-zinc-400">{feat}</span>
-                            </div>
-                        ))}
+                        <div className="flex-[2] grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-8">
+                            {[
+                                "30 Trades / Month", "1 Daily AI Analysis", "Manual Journaling",
+                                "1 Year Backtesting", "2 Backtest Sessions", "No Auto-API Access"
+                            ].map((item, i) => (
+                                <div key={i} className="flex items-center gap-2 text-xs font-bold text-zinc-500">
+                                    <div className="h-1.5 w-1.5 rounded-full bg-zinc-700" />
+                                    {item}
+                                </div>
+                            ))}
+                        </div>
+
+                        <div>
+                            <button
+                                onClick={handleFreeTier}
+                                className="px-8 py-4 rounded-xl border border-white/10 hover:bg-white/5 text-white font-bold text-sm uppercase tracking-wide transition-all whitespace-nowrap"
+                            >
+                                Start for Free
+                            </button>
+                        </div>
                     </div>
                 </div>
 

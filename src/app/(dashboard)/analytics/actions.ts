@@ -255,15 +255,36 @@ export async function getAnalyticsData(mode: 'Live' | 'Backtest' | 'Combined' | 
         avgRR: countRR > 0 ? Number((totalRR / countRR).toFixed(2)) : 0
     }
 
+    // [STRICT LIMITS] Enforce Data Gating based on Plan
+    // Fetch plan from users table
+    const { data: userData } = await supabase
+        .from('users')
+        .select('plan_tier')
+        .eq('id', user.id)
+        .single()
+
+    // Default to FREE if unknown
+    const plan = userData?.plan_tier || 'FREE'
+
+    // Define restrictions
+    const isFree = plan === 'FREE'
+
+    // Free Users: Restricted from "Deep" Analytics (Hourly, Session, Duration, etc.)
+    // They get: Equity Curve, Pair Performance (Basic), Win Rate
+    const restrictedSessionData = isFree ? [] : sessionData
+    const restrictedDayData = isFree ? [] : dayData
+    const restrictedDirectionData = isFree ? [] : directionData
+
     return {
         success: true,
         data: {
             equityCurve,
-            sessionData,
-            dayData,
-            directionData,
+            sessionData: restrictedSessionData,
+            dayData: restrictedDayData,
+            directionData: restrictedDirectionData,
             advancedStats,
-            trades
+            trades,
+            userPlan: plan
         }
     }
 }

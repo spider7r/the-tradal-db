@@ -12,35 +12,57 @@ type PlanVariant = {
     yearly: string
 }
 
-// Update these with the IDs fetched from Lemon Squeezy
-const PLAN_VARIANTS: Record<string, PlanVariant> = {
+type PlanVariantSet = {
+    trial: PlanVariant
+    noTrial: PlanVariant
+}
+
+// Lemon Squeezy Variant IDs (scraped from API)
+// Lemon Squeezy Variant IDs (Updated from fetch_products.ts)
+const PLAN_VARIANTS: Record<string, PlanVariantSet> = {
     'STARTER': {
-        monthly: '1305645',
-        yearly: '1305659'
+        trial: {
+            monthly: '1305645',
+            yearly: '1305659'
+        },
+        noTrial: {
+            monthly: '1305645',
+            yearly: '1305659'
+        }
     },
     'GROWTH': {
-        monthly: '1305663',
-        yearly: '1305673'
+        trial: {
+            monthly: '1305663',
+            yearly: '1305673'
+        },
+        noTrial: {
+            monthly: '1308221',
+            yearly: '1308234'
+        }
     },
     'ENTERPRISE': {
-        monthly: '1305678',
-        yearly: '1305680'
+        trial: {
+            monthly: '1305678',
+            yearly: '1305680'
+        },
+        noTrial: {
+            monthly: '1308246',
+            yearly: '1308249'
+        }
     }
 }
 
-export async function getCheckoutUrl(plan: string, interval: 'monthly' | 'yearly' = 'monthly') {
+export async function getCheckoutUrl(plan: string, interval: 'monthly' | 'yearly' = 'monthly', withTrial: boolean = true) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-        // If not logged in, we can't attach user_id. 
-        // They should ideally sign up/login first OR we handle guest checkout carefully.
-        // For now, let's assume valid user or handle redirection to login.
         throw new Error('User must be logged in to checkout')
     }
 
     const normalizedPlan = plan.toUpperCase()
-    const variantId = PLAN_VARIANTS[normalizedPlan]?.[interval]
+    const variantSet = PLAN_VARIANTS[normalizedPlan]
+    const variantId = variantSet?.[withTrial ? 'trial' : 'noTrial']?.[interval]
 
     if (!variantId) {
         throw new Error('Invalid plan or interval')
@@ -83,6 +105,12 @@ export async function getCheckoutUrl(plan: string, interval: 'monthly' | 'yearly
             }
         }
 
+
+        if (!LEMONSQUEEZY_STORE_ID) {
+            console.error("Missing LEMONSQUEEZY_STORE_ID")
+            throw new Error("Missing Store ID")
+        }
+
         const response = await fetch(LEMONSQUEEZY_API_URL, {
             method: 'POST',
             headers: {
@@ -95,8 +123,9 @@ export async function getCheckoutUrl(plan: string, interval: 'monthly' | 'yearly
 
         if (!response.ok) {
             const errorText = await response.text()
-            console.error('Lemon Squeezy API Error:', errorText)
-            throw new Error(`Failed to create checkout: ${response.statusText}`)
+            console.error('Lemon Squeezy API Error Status:', response.status, response.statusText)
+            console.error('Lemon Squeezy API Error Body:', errorText)
+            throw new Error(`Failed to create checkout: ${response.statusText} - ${errorText}`)
         }
 
         const data = await response.json()
@@ -105,7 +134,7 @@ export async function getCheckoutUrl(plan: string, interval: 'monthly' | 'yearly
         return { url: checkoutUrl }
 
     } catch (error) {
-        console.error('Checkout Error:', error)
+        console.error('Checkout Error Details:', error)
         return { error: 'Failed to initiate checkout' }
     }
 }

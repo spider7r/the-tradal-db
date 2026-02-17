@@ -1,150 +1,248 @@
 'use client'
 
-import { Check, Shield, Zap, Crown } from 'lucide-react'
+import { Check, Zap, Crown, Shield, Sparkles, User, BarChart2, MessageSquare, Briefcase } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { ManualPaymentDialog } from '@/components/upgrade/ManualPaymentDialog'
+import { motion } from 'framer-motion'
 
 interface PricingSectionProps {
-    user?: any // Pass user if available (server or client side)
+    user?: any
 }
+
+const plans = [
+    {
+        key: 'free',
+        name: 'Free',
+        icon: User,
+        monthlyPrice: 0,
+        yearlyPrice: 0,
+        tagline: 'Experience the power of AI trading.',
+        features: [
+            '50 Lifetime Trades',
+            '1 Portfolio',
+            '3 AI Chats / Day',
+            '1 AI Chart Analysis / Day',
+            'Basic Analytics',
+        ],
+        color: 'zinc',
+        popular: false,
+        cta: 'Get Started Free',
+    },
+    {
+        key: 'starter',
+        name: 'Starter',
+        icon: Zap,
+        monthlyPrice: 19,
+        yearlyPrice: 185,
+        tagline: 'For traders building their edge.',
+        features: [
+            'Unlimited Trades',
+            '3 Portfolios',
+            'Unlimited AI Chat',
+            '10 AI Chart Analysis / Day',
+            'Advanced Analytics',
+        ],
+        color: 'emerald',
+        popular: false,
+        cta: 'Get Started',
+    },
+    {
+        key: 'growth',
+        name: 'Growth',
+        icon: Crown,
+        monthlyPrice: 29,
+        yearlyPrice: 280,
+        tagline: 'For serious traders seeking consistency.',
+        features: [
+            'Unlimited Auto-Sync',
+            '10 Portfolios',
+            'Unlimited AI Chat',
+            '30 AI Chart Analysis / Day',
+            'Prop Firm Guardian',
+        ],
+        color: 'emerald',
+        popular: true,
+        cta: 'Start 14-Day Trial',
+    },
+    {
+        key: 'enterprise',
+        name: 'Enterprise',
+        icon: Shield,
+        monthlyPrice: 59,
+        yearlyPrice: 570,
+        tagline: 'For funded traders managing multi-accounts.',
+        features: [
+            'Everything Unlimited',
+            'Unlimited Portfolios',
+            'Unlimited AI Analysis',
+            'Dedicated Account Manager',
+            'API Access',
+        ],
+        color: 'cyan',
+        popular: false,
+        cta: 'Get Enterprise',
+    },
+]
 
 export function PricingSection({ user }: PricingSectionProps) {
     const router = useRouter()
-    const [showPayment, setShowPayment] = useState(false)
+    const [interval, setInterval] = useState<'monthly' | 'yearly'>('monthly')
 
-    const handleUpgrade = () => {
-        if (user) {
-            // User is logged in, show payment dialog immediately
-            setShowPayment(true)
+    const handleSelect = (plan: typeof plans[0]) => {
+        if (plan.key === 'free') {
+            router.push('/signup?plan=free')
         } else {
-            // User is not logged in, redirect to signup with intent
-            // After signup, we should redirect them to /dashboard?upgrade=true
-            router.push('/signup?intent=upgrade')
+            // Redirect to universal checkout page
+            router.push(`/checkout?plan=${plan.key}`)
         }
     }
 
     return (
         <section className="py-24 bg-black relative overflow-hidden" id="pricing">
             {/* Background Gradients */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl pointer-events-none">
-                <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-[100px]" />
-                <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[100px]" />
+            <div className="absolute inset-0 pointer-events-none">
+                <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/[0.06] rounded-full blur-[120px]" />
+                <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500/[0.04] rounded-full blur-[100px]" />
             </div>
 
             <div className="container mx-auto px-4 relative z-10">
-                <div className="text-center mb-16 space-y-4">
+                {/* Header */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    className="text-center mb-12 space-y-4"
+                >
                     <h2 className="text-4xl md:text-5xl font-black text-white italic uppercase tracking-tighter">
-                        Choose Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-600">Weapon</span>
+                        Choose Your{' '}
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
+                            Edge
+                        </span>
                     </h2>
                     <p className="text-zinc-400 font-medium max-w-2xl mx-auto">
-                        Stop gambling. Start trading like a professional instiution.
+                        Stop gambling. Start trading like a professional institution.
                     </p>
-                </div>
+                </motion.div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-
-                    {/* STARTER */}
-                    <div className="rounded-[2rem] border border-zinc-800 bg-zinc-900/50 p-8 flex flex-col hover:border-zinc-700 transition-colors">
-                        <div className="mb-8">
-                            <h3 className="text-xl font-bold text-zinc-400 uppercase tracking-widest mb-4">Starter</h3>
-                            <div className="flex items-baseline gap-1">
-                                <span className="text-4xl font-black text-white">$0</span>
-                                <span className="text-zinc-500 font-medium">/month</span>
-                            </div>
-                            <p className="text-zinc-500 text-sm mt-4 font-medium">For beginners just starting their journey.</p>
-                        </div>
-                        <ul className="space-y-4 mb-8 flex-1">
-                            {['Basic Journaling', '3 AI Analysis / Day', 'Standard Analytics', 'Community Access'].map(item => (
-                                <li key={item} className="flex items-center gap-3 text-sm text-zinc-300">
-                                    <div className="p-1 rounded-full bg-zinc-800">
-                                        <Check className="h-3 w-3 text-zinc-400" />
-                                    </div>
-                                    {item}
-                                </li>
-                            ))}
-                        </ul>
+                {/* Billing Toggle */}
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    className="flex justify-center mb-12"
+                >
+                    <div className="relative flex bg-zinc-900/80 p-1 rounded-xl border border-white/[0.06]">
+                        <motion.div
+                            className="absolute top-1 bottom-1 rounded-lg bg-emerald-500"
+                            initial={false}
+                            animate={{
+                                left: interval === 'monthly' ? '4px' : '50%',
+                                width: 'calc(50% - 4px)',
+                            }}
+                            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                        />
                         <button
-                            onClick={() => router.push('/signup')}
-                            className="w-full py-4 rounded-xl bg-zinc-800 text-white font-bold uppercase tracking-wider hover:bg-zinc-700 transition-colors"
+                            onClick={() => setInterval('monthly')}
+                            className={`relative z-10 px-6 py-2.5 rounded-lg text-sm font-bold transition-colors ${interval === 'monthly' ? 'text-black' : 'text-zinc-400 hover:text-white'
+                                }`}
                         >
-                            Get Started
+                            Monthly
+                        </button>
+                        <button
+                            onClick={() => setInterval('yearly')}
+                            className={`relative z-10 px-6 py-2.5 rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5 ${interval === 'yearly' ? 'text-black' : 'text-zinc-400 hover:text-white'
+                                }`}
+                        >
+                            Yearly
+                            <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${interval === 'yearly' ? 'bg-black/20 text-black' : 'bg-emerald-500/20 text-emerald-400'
+                                }`}>
+                                SAVE 20%
+                            </span>
                         </button>
                     </div>
+                </motion.div>
 
-                    {/* PROFESSIONAL (Featured) */}
-                    <div className="relative rounded-[2rem] border border-amber-500/30 bg-zinc-900 p-8 flex flex-col shadow-2xl shadow-amber-900/20 transform md:-translate-y-4">
-                        <div className="absolute top-0 right-1/2 translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-amber-500 to-orange-600 px-4 py-1 rounded-full text-xs font-black text-black uppercase tracking-widest shadow-lg">
-                            Most Popular
-                        </div>
-                        <div className="mb-8">
-                            <h3 className="text-xl font-bold text-amber-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                <Crown className="h-5 w-5 fill-current" />
-                                Professional
-                            </h3>
-                            <div className="flex items-baseline gap-1">
-                                <span className="text-5xl font-black text-white">$49</span>
-                                <span className="text-zinc-500 font-medium">/month</span>
-                            </div>
-                            <p className="text-zinc-400 text-sm mt-4 font-medium">For serious traders who want an edge.</p>
-                        </div>
-                        <ul className="space-y-4 mb-8 flex-1">
-                            {[
-                                'Run Unlimited AI Analysis',
-                                'Advanced Market Structure AI',
-                                'Psychology Coashing',
-                                'Unlimited Vision Requests',
-                                'Priority Support'
-                            ].map(item => (
-                                <li key={item} className="flex items-center gap-3 text-sm text-white font-medium">
-                                    <div className="p-1 rounded-full bg-amber-500/20">
-                                        <Zap className="h-3 w-3 text-amber-500" />
+                {/* Plans Grid - 4 Columns */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-[1400px] mx-auto">
+                    {plans.map((plan, i) => {
+                        const price = interval === 'monthly' ? plan.monthlyPrice : plan.yearlyPrice
+                        const PlanIcon = plan.icon
+
+                        return (
+                            <motion.div
+                                key={plan.key}
+                                initial={{ opacity: 0, y: 30 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ delay: i * 0.1 }}
+                                className={`relative rounded-2xl p-6 flex flex-col transition-all duration-300 hover:scale-[1.02] ${plan.popular
+                                    ? 'border-2 border-emerald-500/40 bg-zinc-900/80 shadow-2xl shadow-emerald-500/10 lg:-translate-y-4 z-10'
+                                    : 'border border-zinc-800/60 bg-zinc-900/40 hover:border-zinc-700'
+                                    }`}
+                            >
+                                {/* Popular Badge */}
+                                {plan.popular && (
+                                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-emerald-500 to-emerald-400 px-4 py-1 rounded-full text-[10px] font-black text-black uppercase tracking-widest shadow-lg whitespace-nowrap">
+                                        Most Popular
                                     </div>
-                                    {item}
-                                </li>
-                            ))}
-                        </ul>
-                        <button
-                            onClick={handleUpgrade}
-                            className="w-full py-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-black font-black uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-amber-900/20"
-                        >
-                            Upgrade Now
-                        </button>
-                    </div>
+                                )}
 
-                    {/* ELITE */}
-                    <div className="rounded-[2rem] border border-zinc-800 bg-zinc-900/50 p-8 flex flex-col hover:border-zinc-700 transition-colors">
-                        <div className="mb-8">
-                            <h3 className="text-xl font-bold text-zinc-400 uppercase tracking-widest mb-4">Elite</h3>
-                            <div className="flex items-baseline gap-1">
-                                <span className="text-4xl font-black text-white">$99</span>
-                                <span className="text-zinc-500 font-medium">/month</span>
-                            </div>
-                            <p className="text-zinc-500 text-sm mt-4 font-medium">For prop firm traders and mentors.</p>
-                        </div>
-                        <ul className="space-y-4 mb-8 flex-1">
-                            {['Everything in Pro', 'Mentor Dashboard', 'Team Management', 'API Access', 'White Label Reports'].map(item => (
-                                <li key={item} className="flex items-center gap-3 text-sm text-zinc-300">
-                                    <div className="p-1 rounded-full bg-zinc-800">
-                                        <Shield className="h-3 w-3 text-zinc-400" />
+                                {/* Plan Header */}
+                                <div className="mb-6">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${plan.popular ? 'bg-emerald-500/20' : 'bg-zinc-800'
+                                            }`}>
+                                            <PlanIcon className={`h-4 w-4 ${plan.popular ? 'text-emerald-400' : 'text-zinc-400'}`} />
+                                        </div>
+                                        <h3 className={`text-lg font-black uppercase tracking-wider ${plan.popular ? 'text-emerald-400' : 'text-zinc-400'
+                                            }`}>
+                                            {plan.name}
+                                        </h3>
                                     </div>
-                                    {item}
-                                </li>
-                            ))}
-                        </ul>
-                        <button
-                            onClick={() => router.push('/book-demo')}
-                            className="w-full py-4 rounded-xl bg-zinc-800 text-white font-bold uppercase tracking-wider hover:bg-zinc-700 transition-colors"
-                        >
-                            Contact Sales
-                        </button>
-                    </div>
+                                    <div className="flex items-baseline gap-1">
+                                        <span className={`font-black text-white ${plan.popular ? 'text-4xl' : 'text-3xl'}`}>
+                                            ${price}
+                                        </span>
+                                        <span className="text-zinc-500 font-medium text-sm">
+                                            /{interval === 'monthly' ? 'mo' : 'yr'}
+                                        </span>
+                                    </div>
+                                    <p className="text-zinc-500 text-xs mt-3 font-medium min-h-[40px]">{plan.tagline}</p>
+                                </div>
 
+                                {/* Features */}
+                                <ul className="space-y-3 mb-8 flex-1">
+                                    {plan.features.map((item) => (
+                                        <li key={item} className={`flex items-start gap-3 text-xs ${plan.popular ? 'text-white font-medium' : 'text-zinc-300'
+                                            }`}>
+                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${plan.popular ? 'bg-emerald-500/20' : 'bg-zinc-800'
+                                                }`}>
+                                                <Check className={`h-2.5 w-2.5 ${plan.popular ? 'text-emerald-400' : 'text-zinc-500'}`} />
+                                            </div>
+                                            <span className="leading-tight">{item}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+
+                                {/* CTA */}
+                                <motion.button
+                                    whileHover={{ scale: 1.03 }}
+                                    whileTap={{ scale: 0.97 }}
+                                    onClick={() => handleSelect(plan)}
+                                    className={`w-full py-3 rounded-xl font-black uppercase tracking-wider text-xs transition-all ${plan.popular
+                                        ? 'bg-gradient-to-r from-emerald-500 to-emerald-400 text-black shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30'
+                                        : plan.key === 'free'
+                                            ? 'bg-zinc-800 text-white hover:bg-zinc-700 border border-zinc-700'
+                                            : 'bg-zinc-800 text-white hover:bg-zinc-700'
+                                        }`}
+                                >
+                                    {plan.cta}
+                                </motion.button>
+                            </motion.div>
+                        )
+                    })}
                 </div>
             </div>
-
-            {/* Payment Modal (Only opens if user is logged in) */}
-            <ManualPaymentDialog open={showPayment} onOpenChange={setShowPayment} />
         </section>
     )
 }

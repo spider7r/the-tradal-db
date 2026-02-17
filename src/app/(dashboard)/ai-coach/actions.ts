@@ -43,6 +43,10 @@ async function checkAILimit(userId: string, type: 'vision' | 'chat') {
         limit = 10; // 10 Free chats/day for starter
     }
 
+    if (user.plan_tier === 'FREE' || !user.plan_tier) {
+        limit = type === 'chat' ? 3 : 1;
+    }
+
     if (currentUsage >= limit) {
         throw new Error(`Daily Limit Reached! Upgrade to PRO for more.`);
     }

@@ -1,11 +1,13 @@
 'use client'
 
 import { Crown, Check, Zap, Shield, CreditCard, Award } from 'lucide-react'
-import { ManualPaymentDialog } from '@/components/upgrade/ManualPaymentDialog'
+// import { ManualPaymentDialog } from '@/components/upgrade/ManualPaymentDialog' // Removed
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 export function BillingSection({ user }: { user: any }) {
-    const [showPayment, setShowPayment] = useState(false)
+    const router = useRouter()
+    const [showPayment, setShowPayment] = useState(false) // Keeping state for now to minimize diff, or remove if unused warning is ok (VSCode usually handles it)
     const currentPlan = user?.plan_tier || 'STARTER'
 
     // Dynamic Plan Details
@@ -47,8 +49,8 @@ export function BillingSection({ user }: { user: any }) {
             <div className="relative rounded-[2rem] border border-zinc-800 bg-zinc-900 p-8 overflow-hidden">
                 <div className="absolute top-0 right-0 p-4">
                     <span className={`px-3 py-1 rounded-full text-xs font-bold border uppercase tracking-widest ${currentPlan === 'ELITE' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' :
-                            currentPlan === 'PROFESSIONAL' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
-                                'bg-zinc-800 text-zinc-400 border-zinc-700'
+                        currentPlan === 'PROFESSIONAL' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
+                            'bg-zinc-800 text-zinc-400 border-zinc-700'
                         }`}>
                         {currentPlan} PLAN
                     </span>
@@ -73,8 +75,8 @@ export function BillingSection({ user }: { user: any }) {
                         {currentDetails.features.map((feat, i) => (
                             <div key={i} className="flex items-center gap-3 text-sm text-zinc-300">
                                 <Check className={`h-4 w-4 ${currentPlan === 'ELITE' ? 'text-purple-500' :
-                                        currentPlan === 'PROFESSIONAL' ? 'text-amber-500' :
-                                            'text-zinc-600'
+                                    currentPlan === 'PROFESSIONAL' ? 'text-amber-500' :
+                                        'text-zinc-600'
                                     }`} />
                                 <span>{feat}</span>
                             </div>
@@ -83,7 +85,7 @@ export function BillingSection({ user }: { user: any }) {
 
                     {currentPlan !== 'ELITE' && (
                         <button
-                            onClick={() => setShowPayment(true)}
+                            onClick={() => router.push('/checkout?plan=growth')}
                             className="w-full py-4 rounded-xl bg-white text-black font-black uppercase tracking-wider hover:bg-zinc-200 transition-colors flex items-center justify-center gap-2"
                         >
                             <Zap className="h-4 w-4 fill-black" />
@@ -114,7 +116,7 @@ export function BillingSection({ user }: { user: any }) {
                 </div>
             </div>
 
-            <ManualPaymentDialog open={showPayment} onOpenChange={setShowPayment} />
+            {/* ManualPaymentDialog removed */}
         </div>
     )
 }
