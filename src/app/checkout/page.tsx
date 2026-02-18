@@ -170,7 +170,7 @@ function CheckoutPageContent() {
 
                     {/* Logo Section */}
                     <div className="flex items-center gap-3">
-                        <div className="relative h-8 w-auto aspect-[3/1]"> {/* Adjust aspect ratio based on actual logo dimensions */}
+                        <div className="relative h-12 w-auto aspect-[3/1]">
                             <img src="/logo.png" alt="The Tradal" className="h-full w-auto object-contain" />
                         </div>
                     </div>
