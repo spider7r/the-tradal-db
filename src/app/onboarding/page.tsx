@@ -49,15 +49,9 @@ export default function OnboardingPage() {
 
     const handleFreeTier = async () => {
         setIsActivating(true)
-        try {
-            await activateFreePlan()
-            // Use full page navigation to ensure server component re-reads updated DB
-            window.location.href = '/dashboard'
-        } catch (error) {
-            console.error('Failed to activate free plan:', error)
-            // Still try to redirect
-            window.location.href = '/dashboard'
-        }
+        // Route through LemonSqueezy checkout (Free Forever product, $0)
+        // This ensures the webhook fires and properly sets user data
+        router.push('/checkout?plan=free')
     }
 
     return (

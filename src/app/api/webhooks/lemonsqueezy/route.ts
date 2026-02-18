@@ -64,17 +64,17 @@ export async function POST(request: Request) {
 
                 const { error: updateError } = await supabase
                     .from('users')
-                    .update({
-                        plan_tier: planName, // Make sure this matches ENUM or TEXT check
+                    .upsert({
+                        id: userId,
+                        plan_tier: planName,
+                        onboarding_completed: true,
                         ai_daily_limit: newLimit,
                         lemon_squeezy_customer_id: attributes.customer_id,
-                        lemon_squeezy_subscription_id: data.id, // For payment_success, this might be partial data. 
-                        // Ideally 'subscription_payment_success' has data.relationships.subscription
+                        lemon_squeezy_subscription_id: data.id,
                         lemon_squeezy_variant_id: attributes.variant_id || attributes.first_subscription_item?.variant_id,
                         subscription_status: attributes.status,
                         renews_at: attributes.renews_at,
-                    })
-                    .eq('id', userId)
+                    }, { onConflict: 'id' })
 
                 if (updateError) {
                     console.error('Failed to update user subscription:', updateError)

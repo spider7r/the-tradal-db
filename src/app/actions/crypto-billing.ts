@@ -65,8 +65,8 @@ export async function createCryptoCheckout(
                     plan: planName.toLowerCase(),
                     billing_cycle: billingCycle,
                 },
-                redirect_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://the-tradal-main.vercel.app'}/dashboard?payment=success&method=crypto`,
-                cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://the-tradal-main.vercel.app'}/checkout?plan=${planName.toLowerCase()}`,
+                redirect_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://app.thetradal.com'}/dashboard?payment=success&method=crypto`,
+                cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://app.thetradal.com'}/checkout?plan=${planName.toLowerCase()}`,
             }),
         })
 

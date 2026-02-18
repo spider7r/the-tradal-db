@@ -20,6 +20,16 @@ type PlanVariantSet = {
 // Lemon Squeezy Variant IDs (scraped from API)
 // Lemon Squeezy Variant IDs (Updated from fetch_products.ts)
 const PLAN_VARIANTS: Record<string, PlanVariantSet> = {
+    'FREE': {
+        trial: {
+            monthly: '1320197',
+            yearly: '1320197'
+        },
+        noTrial: {
+            monthly: '1320197',
+            yearly: '1320197'
+        }
+    },
     'STARTER': {
         trial: {
             monthly: '1305645',
@@ -83,9 +93,9 @@ export async function getCheckoutUrl(plan: string, interval: 'monthly' | 'yearly
                     },
                     product_options: {
                         // Redirect back to dashboard after purchase
-                        redirect_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://the-tradal-main.vercel.app'}/dashboard`,
+                        redirect_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://app.thetradal.com'}/dashboard`,
                         receipt_button_text: "Go to Dashboard",
-                        receipt_link_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://the-tradal-main.vercel.app'}/dashboard`
+                        receipt_link_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://app.thetradal.com'}/dashboard`
                     }
                 },
                 relationships: {

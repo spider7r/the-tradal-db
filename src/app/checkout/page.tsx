@@ -135,7 +135,17 @@ function CheckoutPageContent() {
 
         if (safePlanParam === 'free') {
             setLoading(true)
-            router.push('/dashboard')
+            try {
+                // Route through LemonSqueezy checkout (Free Forever product, $0)
+                const result = await getCheckoutUrl('free', 'monthly', false)
+                if (result.url) window.location.href = result.url
+                else alert('Free plan checkout failed. Please try again.')
+            } catch (error) {
+                console.error(error)
+                alert('An unexpected error occurred.')
+            } finally {
+                setLoading(false)
+            }
             return
         }
 
@@ -378,8 +388,8 @@ function CheckoutPageContent() {
                                                 onClick={handleCheckout}
                                                 disabled={loading || !user}
                                                 className={`w-full py-5 rounded-xl font-black uppercase tracking-wider text-sm transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 group relative overflow-hidden ${paymentMethod === 'crypto'
-                                                        ? 'bg-orange-500 hover:bg-orange-400 text-black shadow-[0_0_40px_-10px_rgba(249,115,22,0.5)] hover:shadow-[0_0_60px_-10px_rgba(249,115,22,0.6)]'
-                                                        : 'bg-emerald-500 hover:bg-emerald-400 text-black shadow-[0_0_40px_-10px_rgba(16,185,129,0.5)] hover:shadow-[0_0_60px_-10px_rgba(16,185,129,0.6)]'
+                                                    ? 'bg-orange-500 hover:bg-orange-400 text-black shadow-[0_0_40px_-10px_rgba(249,115,22,0.5)] hover:shadow-[0_0_60px_-10px_rgba(249,115,22,0.6)]'
+                                                    : 'bg-emerald-500 hover:bg-emerald-400 text-black shadow-[0_0_40px_-10px_rgba(16,185,129,0.5)] hover:shadow-[0_0_60px_-10px_rgba(16,185,129,0.6)]'
                                                     }`}
                                             >
                                                 <span className="relative z-10 flex items-center gap-2">

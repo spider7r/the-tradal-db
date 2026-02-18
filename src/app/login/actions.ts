@@ -65,7 +65,7 @@ export async function signup(formData: FormData) {
     const cookieStore = await cookies()
     const affiliateRef = cookieStore.get('affiliate_ref')?.value
 
-    const origin = process.env.NEXT_PUBLIC_SITE_URL || 'https://the-tradal-main.vercel.app'
+    const origin = process.env.NEXT_PUBLIC_SITE_URL || 'https://app.thetradal.com'
     const redirectTo = plan
         ? `${origin}/auth/callback?next=/checkout?plan=${plan}`
         : `${origin}/auth/callback`
