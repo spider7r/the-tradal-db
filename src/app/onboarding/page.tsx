@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ManualPaymentDialog } from '@/components/upgrade/ManualPaymentDialog'
-import { markOnboardingComplete } from '@/app/actions/billing'
+import { markOnboardingComplete, setOnboardingCookie } from '@/app/actions/billing'
 
 export default function OnboardingPage() {
     const router = useRouter()
@@ -45,23 +45,17 @@ export default function OnboardingPage() {
 
     const handlePlanSelect = async (plan: typeof plans[0]) => {
         setIsActivating(true)
-        try {
-            // Mark onboarding done IMMEDIATELY — prevents re-redirect after checkout
-            await markOnboardingComplete()
-        } catch (e) {
-            console.error('Failed to mark onboarding complete:', e)
-        }
+        // NUCLEAR FIX: Set cookie FIRST (never fails), then try DB (backup)
+        try { await setOnboardingCookie() } catch { }
+        try { await markOnboardingComplete() } catch { }
         router.push(`/checkout?plan=${plan.name.toLowerCase()}`)
     }
 
     const handleFreeTier = async () => {
         setIsActivating(true)
-        try {
-            // Mark onboarding done IMMEDIATELY — prevents re-redirect after checkout
-            await markOnboardingComplete()
-        } catch (e) {
-            console.error('Failed to mark onboarding complete:', e)
-        }
+        // NUCLEAR FIX: Set cookie FIRST (never fails), then try DB (backup)
+        try { await setOnboardingCookie() } catch { }
+        try { await markOnboardingComplete() } catch { }
         router.push('/checkout?plan=free')
     }
 

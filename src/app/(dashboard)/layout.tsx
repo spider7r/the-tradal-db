@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 import { AccountProvider } from '@/context/AccountContext'
 import { Providers } from '@/components/Providers'
 import { PlanEnforcementWrapper } from '@/components/auth/PlanEnforcementWrapper'
+import { cookies } from 'next/headers'
 
 export default async function DashboardLayout({
     children,
@@ -35,11 +36,36 @@ export default async function DashboardLayout({
         .eq('id', user.id)
         .single()
 
-    // New users see onboarding pricing screen first
-    // Free plan selection on that screen sets onboarding_completed=true → dashboard
-    // Paid plan selection → checkout
-    // Redirect if: real auth user AND (no profile row yet OR onboarding not completed)
-    if (authUser && (!userProfile || userProfile.onboarding_completed !== true)) {
+    // =============================================================
+    // BULLETPROOF ONBOARDING GATE (Cookie-first, then DB fallback)
+    // =============================================================
+    // 1. Check cookie FIRST — this is synchronous, never fails,
+    //    and persists across LemonSqueezy redirects.
+    // 2. If cookie exists → user already selected a plan → SHOW DASHBOARD
+    // 3. If no cookie → check DB → if onboarding_completed is true → SHOW DASHBOARD
+    // 4. Otherwise → redirect to /onboarding
+    // =============================================================
+    const cookieStore = await cookies()
+    const onboardedCookie = cookieStore.get('tradal_onboarded')?.value
+
+    if (onboardedCookie === 'true') {
+        // Cookie says user already completed onboarding — trust it.
+        // Also try to sync the DB if it's out of date (best-effort, don't block)
+        if (!userProfile || userProfile.onboarding_completed !== true) {
+            // Best-effort DB sync — don't block rendering
+            try {
+                await supabase.from('users').upsert({
+                    id: user.id,
+                    email: user.email,
+                    onboarding_completed: true,
+                }, { onConflict: 'id' })
+            } catch { /* ignore */ }
+        }
+        // Proceed to dashboard — DO NOT redirect to onboarding
+    } else if (userProfile?.onboarding_completed === true) {
+        // DB says onboarding is complete — trust it, no redirect needed
+    } else {
+        // Neither cookie nor DB says onboarding is done → redirect
         redirect('/onboarding')
     }
 

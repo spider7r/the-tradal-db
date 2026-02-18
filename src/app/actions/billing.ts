@@ -153,6 +153,28 @@ export async function getCheckoutUrl(plan: string, interval: 'monthly' | 'yearly
 }
 
 /**
+ * NUCLEAR FIX: Set a cookie to mark onboarding as complete.
+ * This cookie is checked FIRST by the dashboard layout (before DB).
+ * Unlike DB writes, cookies:
+ * - Never fail silently
+ * - Don't depend on Supabase auth session
+ * - Persist across LemonSqueezy external redirects
+ * - Are synchronous to read in server components
+ */
+export async function setOnboardingCookie() {
+    const { cookies } = await import('next/headers')
+    const cookieStore = await cookies()
+    cookieStore.set('tradal_onboarded', 'true', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 365, // 1 year
+        path: '/',
+    })
+    return { success: true }
+}
+
+/**
  * Mark onboarding as complete IMMEDIATELY when user clicks any plan.
  * This must be called BEFORE redirecting to checkout to prevent
  * the race condition where user lands on dashboard before the

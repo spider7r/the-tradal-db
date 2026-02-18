@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { getCheckoutUrl, markOnboardingComplete } from '../actions/billing'
+import { getCheckoutUrl, markOnboardingComplete, setOnboardingCookie } from '../actions/billing'
 import { createCryptoCheckout } from '../actions/crypto-billing'
 import { Loader2, Check, ShieldCheck, Zap, CreditCard, Lock, Sparkles, Clock, Bitcoin, BadgeCheck, User, ArrowLeft } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
@@ -114,12 +114,10 @@ function CheckoutPageContent() {
         supabase.auth.getUser().then(({ data: { user } }) => {
             if (user) {
                 setUser(user)
-                // Safety net: mark onboarding complete when checkout loads
-                // In case user navigated directly to /checkout?plan=X
+                // Safety net: set cookie + mark DB when checkout loads
                 if (safePlanParam) {
-                    markOnboardingComplete().catch(e =>
-                        console.error('Safety net markOnboardingComplete failed:', e)
-                    )
+                    setOnboardingCookie().catch(() => { })
+                    markOnboardingComplete().catch(() => { })
                 }
             }
         })
