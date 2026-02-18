@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getCheckoutUrl } from '../actions/billing'
+import { createCryptoCheckout } from '../actions/crypto-billing'
 import { Loader2, Check, ShieldCheck, Zap, CreditCard, Lock, Sparkles, Clock, Bitcoin, BadgeCheck, User, ArrowLeft } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import Link from 'next/link'
@@ -140,9 +141,15 @@ function CheckoutPageContent() {
 
         setLoading(true)
         try {
-            const result = await getCheckoutUrl(safePlanParam, interval, showTrial)
-            if (result.url) window.location.href = result.url
-            else alert('Checkout failed. Please try again.')
+            if (paymentMethod === 'crypto') {
+                const result = await createCryptoCheckout(safePlanParam, interval)
+                if (result.url) window.location.href = result.url
+                else alert(result.error || 'Crypto checkout failed. Please try again.')
+            } else {
+                const result = await getCheckoutUrl(safePlanParam, interval, showTrial)
+                if (result.url) window.location.href = result.url
+                else alert('Checkout failed. Please try again.')
+            }
         } catch (error) {
             console.error(error)
             alert('An unexpected error occurred.')
@@ -319,12 +326,11 @@ function CheckoutPageContent() {
                                                     <span className="text-[10px] font-bold uppercase tracking-wider">Card / PayPal</span>
                                                 </button>
                                                 <button
-                                                    disabled
-                                                    className={`relative py-4 px-4 rounded-xl border flex flex-col items-center justify-center gap-3 transition-all opacity-60 cursor-not-allowed bg-black/40 border-zinc-800 text-zinc-600`}
+                                                    onClick={() => setPaymentMethod('crypto')}
+                                                    className={`relative py-4 px-4 rounded-xl border flex flex-col items-center justify-center gap-3 transition-all ${paymentMethod === 'crypto' ? 'bg-orange-500/10 border-orange-500 text-orange-400 shadow-[0_0_20px_-5px_rgba(249,115,22,0.3)]' : 'bg-black/40 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:bg-zinc-900'}`}
                                                 >
                                                     <Bitcoin className="w-6 h-6" />
                                                     <span className="text-[10px] font-bold uppercase tracking-wider">Crypto</span>
-                                                    <span className="absolute -top-2.5 -right-2 bg-zinc-800 text-white border border-zinc-700 text-[9px] font-bold px-2 py-0.5 rounded-full shadow-lg">SOON</span>
                                                 </button>
                                             </div>
 
@@ -371,12 +377,19 @@ function CheckoutPageContent() {
                                             <button
                                                 onClick={handleCheckout}
                                                 disabled={loading || !user}
-                                                className="w-full py-5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black uppercase tracking-wider text-sm transition-all shadow-[0_0_40px_-10px_rgba(16,185,129,0.5)] hover:shadow-[0_0_60px_-10px_rgba(16,185,129,0.6)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 group relative overflow-hidden"
+                                                className={`w-full py-5 rounded-xl font-black uppercase tracking-wider text-sm transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 group relative overflow-hidden ${paymentMethod === 'crypto'
+                                                        ? 'bg-orange-500 hover:bg-orange-400 text-black shadow-[0_0_40px_-10px_rgba(249,115,22,0.5)] hover:shadow-[0_0_60px_-10px_rgba(249,115,22,0.6)]'
+                                                        : 'bg-emerald-500 hover:bg-emerald-400 text-black shadow-[0_0_40px_-10px_rgba(16,185,129,0.5)] hover:shadow-[0_0_60px_-10px_rgba(16,185,129,0.6)]'
+                                                    }`}
                                             >
                                                 <span className="relative z-10 flex items-center gap-2">
                                                     {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
                                                         <>
-                                                            {showTrial ? 'Start Free Trial' : 'Secure Payment'}
+                                                            {paymentMethod === 'crypto' ? (
+                                                                <><Bitcoin className="w-5 h-5" /> Pay with Crypto</>
+                                                            ) : (
+                                                                showTrial ? 'Start Free Trial' : 'Secure Payment'
+                                                            )}
                                                             <ArrowLeft className="w-4 h-4 rotate-180 group-hover:translate-x-1 transition-transform" />
                                                         </>
                                                     )}
