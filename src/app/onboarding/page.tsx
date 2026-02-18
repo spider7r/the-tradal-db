@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ManualPaymentDialog } from '@/components/upgrade/ManualPaymentDialog'
-import { activateFreePlan } from '@/app/actions/billing'
+import { markOnboardingComplete } from '@/app/actions/billing'
 
 export default function OnboardingPage() {
     const router = useRouter()
@@ -43,14 +43,25 @@ export default function OnboardingPage() {
         }
     ]
 
-    const handlePlanSelect = (plan: typeof plans[0]) => {
+    const handlePlanSelect = async (plan: typeof plans[0]) => {
+        setIsActivating(true)
+        try {
+            // Mark onboarding done IMMEDIATELY — prevents re-redirect after checkout
+            await markOnboardingComplete()
+        } catch (e) {
+            console.error('Failed to mark onboarding complete:', e)
+        }
         router.push(`/checkout?plan=${plan.name.toLowerCase()}`)
     }
 
     const handleFreeTier = async () => {
         setIsActivating(true)
-        // Route through LemonSqueezy checkout (Free Forever product, $0)
-        // This ensures the webhook fires and properly sets user data
+        try {
+            // Mark onboarding done IMMEDIATELY — prevents re-redirect after checkout
+            await markOnboardingComplete()
+        } catch (e) {
+            console.error('Failed to mark onboarding complete:', e)
+        }
         router.push('/checkout?plan=free')
     }
 

@@ -153,6 +153,40 @@ export async function getCheckoutUrl(plan: string, interval: 'monthly' | 'yearly
 }
 
 /**
+ * Mark onboarding as complete IMMEDIATELY when user clicks any plan.
+ * This must be called BEFORE redirecting to checkout to prevent
+ * the race condition where user lands on dashboard before the
+ * LemonSqueezy webhook fires, causing a re-redirect to onboarding.
+ * 
+ * This is lightweight — it ONLY sets onboarding_completed = true.
+ * The webhook later fills in plan_tier, subscription_status, etc.
+ */
+export async function markOnboardingComplete() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+        throw new Error('Not authenticated')
+    }
+
+    const { error } = await supabase
+        .from('users')
+        .upsert({
+            id: user.id,
+            email: user.email,
+            full_name: user.user_metadata?.full_name || user.user_metadata?.name || null,
+            onboarding_completed: true,
+        }, { onConflict: 'id' })
+
+    if (error) {
+        console.error('Failed to mark onboarding complete:', error)
+        throw new Error('Failed to mark onboarding complete')
+    }
+
+    return { success: true }
+}
+
+/**
  * Activate the Free plan for a user.
  * Sets onboarding_completed = true and plan_tier = 'free' in the DB.
  * This must be called BEFORE redirecting to dashboard to prevent
