@@ -43,7 +43,8 @@ export default async function DashboardLayout({
     // New users see onboarding pricing screen first
     // Free plan selection on that screen sets onboarding_completed=true → dashboard
     // Paid plan selection → checkout
-    if (userProfile && userProfile.onboarding_completed === false) {
+    // Redirect if: real auth user AND (no profile row yet OR onboarding not completed)
+    if (authUser && (!userProfile || userProfile.onboarding_completed !== true)) {
         redirect('/onboarding')
     }
 

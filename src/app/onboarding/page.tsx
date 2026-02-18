@@ -51,11 +51,12 @@ export default function OnboardingPage() {
         setIsActivating(true)
         try {
             await activateFreePlan()
-            router.push('/dashboard')
+            // Use full page navigation to ensure server component re-reads updated DB
+            window.location.href = '/dashboard'
         } catch (error) {
             console.error('Failed to activate free plan:', error)
             // Still try to redirect
-            router.push('/dashboard')
+            window.location.href = '/dashboard'
         }
     }
 
