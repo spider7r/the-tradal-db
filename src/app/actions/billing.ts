@@ -153,14 +153,19 @@ export async function activateFreePlan() {
         throw new Error('Not authenticated')
     }
 
+    // Use upsert instead of update — new signups may not have a public.users row yet.
+    // .update() would silently match 0 rows and do nothing, causing an infinite onboarding loop.
     const { error } = await supabase
         .from('users')
-        .update({
+        .upsert({
+            id: user.id,
+            email: user.email,
+            full_name: user.user_metadata?.full_name || user.user_metadata?.name || null,
+            phone: user.user_metadata?.phone_number || null,
             onboarding_completed: true,
             plan_tier: 'free',
             subscription_status: 'free'
-        })
-        .eq('id', user.id)
+        }, { onConflict: 'id' })
 
     if (error) {
         console.error('Failed to activate free plan:', error)
