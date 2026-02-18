@@ -2,11 +2,12 @@ import { createClient } from '@/utils/supabase/server'
 import crypto from 'crypto'
 import { headers } from 'next/headers'
 
-// Webhook Secret from LS Dashboard
-const WEBHOOK_SECRET = process.env.LEMONSQUEEZY_WEBHOOK_SECRET
 
 export async function POST(request: Request) {
     try {
+        // Read env var inside function body — NOT at module level
+        const WEBHOOK_SECRET = process.env.LEMONSQUEEZY_WEBHOOK_SECRET
+
         if (!WEBHOOK_SECRET) {
             console.error('LEMONSQUEEZY_WEBHOOK_SECRET is missing')
             return new Response('Configuration Error', { status: 500 })

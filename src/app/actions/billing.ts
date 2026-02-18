@@ -3,8 +3,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 
-const LEMONSQUEEZY_API_KEY = process.env.LEMONSQUEEZY_API_KEY
-const LEMONSQUEEZY_STORE_ID = process.env.LEMONSQUEEZY_STORE_ID
 const LEMONSQUEEZY_API_URL = 'https://api.lemonsqueezy.com/v1/checkouts'
 
 type PlanVariant = {
@@ -63,6 +61,11 @@ const PLAN_VARIANTS: Record<string, PlanVariantSet> = {
 }
 
 export async function getCheckoutUrl(plan: string, interval: 'monthly' | 'yearly' = 'monthly', withTrial: boolean = true) {
+    // Read env vars inside function body — NOT at module level.
+    // Module-level reads can get cached at build time by Next.js.
+    const LEMONSQUEEZY_API_KEY = process.env.LEMONSQUEEZY_API_KEY
+    const LEMONSQUEEZY_STORE_ID = process.env.LEMONSQUEEZY_STORE_ID
+
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -92,10 +95,10 @@ export async function getCheckoutUrl(plan: string, interval: 'monthly' | 'yearly
                         }
                     },
                     product_options: {
-                        // Redirect back to dashboard after purchase
-                        redirect_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://app.thetradal.com'}/dashboard`,
+                        // Hardcoded production redirect — env var was causing wrong domain
+                        redirect_url: 'https://app.thetradal.com/dashboard',
                         receipt_button_text: "Go to Dashboard",
-                        receipt_link_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://app.thetradal.com'}/dashboard`
+                        receipt_link_url: 'https://app.thetradal.com/dashboard'
                     }
                 },
                 relationships: {
