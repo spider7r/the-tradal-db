@@ -67,7 +67,7 @@ export async function updateUserPlan(userId: string, planTier: 'FREE' | 'STARTER
             try {
                 // Send Webhook to Affiliate Platform
                 // In production, use process.env.AFFILIATE_WEBHOOK_URL
-                const webhookUrl = process.env.AFFILIATE_WEBHOOK_URL || 'http://localhost:3001/api/webhook/conversion'
+                const webhookUrl = process.env.AFFILIATE_WEBHOOK_URL || 'https://partners.thetradal.com/api/webhook/conversion'
                 const secret = process.env.AFFILIATE_WEBHOOK_SECRET || 'dev_secret'
 
                 await fetch(webhookUrl, {

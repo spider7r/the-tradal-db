@@ -92,7 +92,7 @@ export async function POST(request: Request) {
                             const amountValue = attributes.total ? attributes.total / 100 : 0 // LS uses cents
 
                             if (amountValue > 0) {
-                                const webhookUrl = process.env.AFFILIATE_WEBHOOK_URL || 'http://localhost:3001/api/webhook/conversion'
+                                const webhookUrl = process.env.AFFILIATE_WEBHOOK_URL || 'https://partners.thetradal.com/api/webhook/conversion'
                                 const secret = process.env.AFFILIATE_WEBHOOK_SECRET || 'dev_secret'
 
                                 await fetch(webhookUrl, {
