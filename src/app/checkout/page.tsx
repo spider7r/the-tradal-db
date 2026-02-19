@@ -143,16 +143,25 @@ function CheckoutPageContent() {
         if (safePlanParam === 'free') {
             setLoading(true)
             try {
-                // Direct activation — no LemonSqueezy, no credit card required
-                await activateFreePlan()
-                await setOnboardingCookie()
-                router.push('/dashboard')
-            } catch (error) {
-                console.error('Free plan activation error:', error)
-                alert('Failed to activate free plan. Please try again.')
-            } finally {
-                setLoading(false)
+                // BULLETPROOF: Try full activation first
+                const result = await activateFreePlan()
+                if (result.success) {
+                    console.log('[Checkout] Free plan activated successfully')
+                } else {
+                    // activateFreePlan failed — fall back to markOnboardingComplete
+                    console.warn('[Checkout] activateFreePlan returned error:', result.error)
+                    console.log('[Checkout] Falling back to markOnboardingComplete...')
+                    await markOnboardingComplete()
+                }
+            } catch (err) {
+                // Even if everything fails, try the fallback
+                console.error('[Checkout] Free plan error, trying fallback:', err)
+                try { await markOnboardingComplete() } catch (_) { /* last resort */ }
             }
+            // ALWAYS set cookie + redirect — never leave user stuck
+            try { await setOnboardingCookie() } catch (_) { /* non-blocking */ }
+            router.push('/dashboard')
+            setLoading(false)
             return
         }
 

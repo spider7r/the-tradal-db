@@ -210,36 +210,62 @@ export async function markOnboardingComplete() {
 
 /**
  * Activate the Free plan for a user.
- * Sets onboarding_completed = true and plan_tier = 'free' in the DB.
- * This must be called BEFORE redirecting to dashboard to prevent
- * the infinite redirect loop (dashboard checks onboarding_completed).
+ * BULLETPROOF: Never throws — always returns { success, error? }.
+ * Uses a 2-step approach:
+ *   Step 1: Minimal upsert (id + onboarding_completed) — this MUST succeed
+ *   Step 2: Enhanced upsert (plan_tier, etc.) — nice-to-have, won't block
  */
-export async function activateFreePlan() {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+export async function activateFreePlan(): Promise<{ success: boolean; error?: string }> {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) {
-        throw new Error('Not authenticated')
+        if (!user) {
+            console.error('[activateFreePlan] No authenticated user found')
+            return { success: false, error: 'Not authenticated' }
+        }
+
+        console.log('[activateFreePlan] Activating for user:', user.id, user.email)
+
+        // Step 1: MINIMAL upsert — just enough to stop the onboarding loop
+        const { error: minimalError } = await supabase
+            .from('users')
+            .upsert({
+                id: user.id,
+                email: user.email,
+                onboarding_completed: true,
+            }, { onConflict: 'id' })
+
+        if (minimalError) {
+            console.error('[activateFreePlan] Step 1 FAILED (minimal upsert):', JSON.stringify(minimalError))
+            return { success: false, error: `DB Error: ${minimalError.message}` }
+        }
+
+        console.log('[activateFreePlan] Step 1 OK — onboarding marked complete')
+
+        // Step 2: ENHANCED update — set plan_tier and other fields
+        // This is a separate UPDATE (not upsert) since the row now exists
+        const { error: enhanceError } = await supabase
+            .from('users')
+            .update({
+                full_name: user.user_metadata?.full_name || user.user_metadata?.name || null,
+                plan_tier: 'FREE',
+                subscription_status: 'active',
+            })
+            .eq('id', user.id)
+
+        if (enhanceError) {
+            // Non-fatal — user can still reach dashboard
+            console.warn('[activateFreePlan] Step 2 WARN (enhance update):', JSON.stringify(enhanceError))
+            // Still return success because onboarding IS complete
+        } else {
+            console.log('[activateFreePlan] Step 2 OK — plan_tier set to FREE')
+        }
+
+        return { success: true }
+
+    } catch (err: any) {
+        console.error('[activateFreePlan] UNEXPECTED ERROR:', err?.message || err)
+        return { success: false, error: err?.message || 'Unexpected error' }
     }
-
-    // Use upsert instead of update — new signups may not have a public.users row yet.
-    // .update() would silently match 0 rows and do nothing, causing an infinite onboarding loop.
-    const { error } = await supabase
-        .from('users')
-        .upsert({
-            id: user.id,
-            email: user.email,
-            full_name: user.user_metadata?.full_name || user.user_metadata?.name || null,
-            phone: user.user_metadata?.phone_number || null,
-            onboarding_completed: true,
-            plan_tier: 'FREE',
-            subscription_status: 'active'
-        }, { onConflict: 'id' })
-
-    if (error) {
-        console.error('Failed to activate free plan:', error)
-        throw new Error('Failed to activate free plan')
-    }
-
-    return { success: true }
 }
