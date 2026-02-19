@@ -1,27 +1,67 @@
 'use client'
 
-import { Crown, Sparkles, X, ChevronRight } from 'lucide-react'
+import { Crown, Sparkles, X, ChevronRight, Clock, Timer } from 'lucide-react'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
-// import { ManualPaymentDialog } from '@/components/upgrade/ManualPaymentDialog' // Removed
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
 interface LimitReachedDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
     feature: 'chat' | 'vision' | 'trade'
+    /** ISO timestamp of when the limit was hit (for countdown calculation) */
+    limitHitTime?: string
 }
 
-export function LimitReachedDialog({ open, onOpenChange, feature }: LimitReachedDialogProps) {
-    const [showPayment, setShowPayment] = useState(false)
+function useCountdown(limitHitTime?: string) {
+    const [timeLeft, setTimeLeft] = useState('')
 
+    useEffect(() => {
+        if (!limitHitTime) {
+            setTimeLeft('')
+            return
+        }
+
+        const calculate = () => {
+            const hitTime = new Date(limitHitTime).getTime()
+            const resetTime = hitTime + 24 * 60 * 60 * 1000 // 24 hours after hit
+            const now = Date.now()
+            const diff = resetTime - now
+
+            if (diff <= 0) {
+                setTimeLeft('Available now! Refresh the page.')
+                return
+            }
+
+            const hours = Math.floor(diff / (1000 * 60 * 60))
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000)
+
+            if (hours > 0) {
+                setTimeLeft(`${hours}h ${minutes}m ${seconds}s`)
+            } else if (minutes > 0) {
+                setTimeLeft(`${minutes}m ${seconds}s`)
+            } else {
+                setTimeLeft(`${seconds}s`)
+            }
+        }
+
+        calculate()
+        const interval = setInterval(calculate, 1000) // Update every second
+        return () => clearInterval(interval)
+    }, [limitHitTime])
+
+    return timeLeft
+}
+
+export function LimitReachedDialog({ open, onOpenChange, feature, limitHitTime }: LimitReachedDialogProps) {
     const router = useRouter()
+    const countdown = useCountdown(limitHitTime)
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-md border-0 bg-transparent p-0 overflow-hidden shadow-2xl">
                 <div className="relative flex flex-col items-center bg-zinc-900 border border-zinc-800 rounded-[2rem] p-8 text-center overflow-hidden">
-                    {/* ... (keep existing content until button) ... */}
                     {/* Background Effects */}
                     <div className="absolute inset-0 bg-gradient-to-b from-amber-500/10 to-transparent pointer-events-none" />
                     <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-64 h-64 bg-amber-500/20 blur-[100px] rounded-full pointer-events-none" />
@@ -43,10 +83,25 @@ export function LimitReachedDialog({ open, onOpenChange, feature }: LimitReached
                     <h2 className="text-2xl font-black text-white italic uppercase tracking-tight mb-2">
                         Limit Reached
                     </h2>
-                    <p className="text-zinc-400 text-sm font-medium leading-relaxed mb-8 max-w-[80%]">
+                    <p className="text-zinc-400 text-sm font-medium leading-relaxed mb-4 max-w-[80%]">
                         You've hit your {feature === 'trade' ? 'monthly limit for TRADES' : `daily limit for ${feature === 'vision' ? 'Chart Analysis' : 'AI Chat'}`}.
-                        Upgrade to <span className="text-amber-500 font-bold">PROFESSIONAL</span> for unlimited access.
                     </p>
+
+                    {/* Countdown Timer */}
+                    {countdown && (
+                        <div className="w-full mb-6 p-4 rounded-xl bg-zinc-950/80 border border-amber-500/20">
+                            <div className="flex items-center justify-center gap-2 mb-2">
+                                <Timer className="h-4 w-4 text-amber-500 animate-pulse" />
+                                <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">Next Free Usage In</span>
+                            </div>
+                            <div className="text-2xl font-black text-white tracking-wider font-mono">
+                                {countdown}
+                            </div>
+                            <p className="text-xs text-zinc-500 mt-2">
+                                Or upgrade now for unlimited access
+                            </p>
+                        </div>
+                    )}
 
                     {/* Features List */}
                     <div className="w-full space-y-3 mb-8">
@@ -56,7 +111,7 @@ export function LimitReachedDialog({ open, onOpenChange, feature }: LimitReached
                         </div>
                         <div className="flex items-center gap-3 p-3 rounded-xl bg-zinc-950/50 border border-zinc-800/50">
                             <Sparkles className="h-4 w-4 text-blue-500" />
-                            <span className="text-sm font-bold text-zinc-300">Advanced AI Models (Claude/GPT-4)</span>
+                            <span className="text-sm font-bold text-zinc-300">Unlimited AI Chat</span>
                         </div>
                         <div className="flex items-center gap-3 p-3 rounded-xl bg-zinc-950/50 border border-zinc-800/50">
                             <Sparkles className="h-4 w-4 text-purple-500" />
@@ -64,7 +119,7 @@ export function LimitReachedDialog({ open, onOpenChange, feature }: LimitReached
                         </div>
                     </div>
 
-                    {/* Actions */}
+                    {/* Upgrade Button */}
                     <button
                         onClick={() => {
                             onOpenChange(false)

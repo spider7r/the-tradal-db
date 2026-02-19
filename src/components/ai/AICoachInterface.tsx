@@ -107,6 +107,30 @@ export function AICoachInterface({ initialTrades, initialReports }: AICoachInter
 
     const [showLimitDialog, setShowLimitDialog] = useState(false)
     const [limitFeature, setLimitFeature] = useState<'chat' | 'vision'>('chat')
+    const [limitHitTime, setLimitHitTime] = useState<string | undefined>(undefined)
+
+    // Helper: parse LIMIT_REACHED|timestamp|limit|type error format
+    const parseLimitError = (errorMsg: string) => {
+        if (errorMsg?.includes('LIMIT_REACHED')) {
+            const parts = errorMsg.split('|')
+            return {
+                isLimit: true,
+                timestamp: parts[1] || new Date().toISOString(),
+                limit: parts[2] || '1',
+                type: (parts[3] || 'vision') as 'chat' | 'vision'
+            }
+        }
+        // Backwards compatible: also check old format
+        if (errorMsg?.includes('Daily Limit')) {
+            return {
+                isLimit: true,
+                timestamp: new Date().toISOString(),
+                limit: '1',
+                type: 'vision' as 'chat' | 'vision'
+            }
+        }
+        return { isLimit: false, timestamp: '', limit: '', type: 'chat' as 'chat' | 'vision' }
+    }
 
     // ... (existing code: reset scroll, handleImageUpload)
 
@@ -150,19 +174,18 @@ export function AICoachInterface({ initialTrades, initialReports }: AICoachInter
             // Error handling
             console.error("AI Error:", response.error)
 
-            if (response.error && response.error.includes("Daily Limit Reached")) {
-                // Remove the user message wrapper if desired, or just show modal
-                setLimitFeature(selectedImage ? 'vision' : 'chat')
+            const limitInfo = parseLimitError(response.error || '')
+            if (limitInfo.isLimit) {
+                // Show the upgrade dialog with countdown
+                setLimitFeature(limitInfo.type)
+                setLimitHitTime(limitInfo.timestamp)
                 setShowLimitDialog(true)
-
-                // Optional: Remove the last user message if failed? 
-                // No, keep it so they can resend after upgrade.
 
                 // Show a system message in chat too
                 const errorMsg: Message = {
                     id: (Date.now() + 1).toString(),
                     role: 'assistant',
-                    content: "🔒 **Limit Reached**: Upgrade to Professional for unlimited access.",
+                    content: "🔒 **Daily Limit Reached** — Your free analysis for today has been used. Check the popup for your countdown timer, or upgrade for unlimited access.",
                     timestamp: new Date()
                 }
                 setMessages(prev => [...prev, errorMsg])
@@ -276,6 +299,28 @@ Please provide a complete analysis with specific entry, stop loss, and take prof
 
         const response = await sendChatMessage(prompt, contextObj, images[0])
 
+        setIsTyping(false)
+        setIsAnalyzing(false)
+
+        // Check for limit error FIRST
+        if (!response.success && response.error) {
+            const limitInfo = parseLimitError(response.error)
+            if (limitInfo.isLimit) {
+                setLimitFeature(limitInfo.type)
+                setLimitHitTime(limitInfo.timestamp)
+                setShowLimitDialog(true)
+
+                const limitMsg: Message = {
+                    id: (Date.now() + 1).toString(),
+                    role: 'assistant',
+                    content: "🔒 **Daily Limit Reached** — Your free chart analysis for today has been used. Check the popup for your countdown timer, or upgrade for unlimited access.",
+                    timestamp: new Date()
+                }
+                setMessages(prev => [...prev, limitMsg])
+                return
+            }
+        }
+
         const assistantMsg: Message = {
             id: (Date.now() + 1).toString(),
             role: 'assistant',
@@ -284,8 +329,6 @@ Please provide a complete analysis with specific entry, stop loss, and take prof
         }
 
         setMessages(prev => [...prev, assistantMsg])
-        setIsTyping(false)
-        setIsAnalyzing(false)
 
         // Store context for save functionality
         setLastWizardContext(context)
@@ -347,6 +390,7 @@ Please provide a complete analysis with specific entry, stop loss, and take prof
                 open={showLimitDialog}
                 onOpenChange={setShowLimitDialog}
                 feature={limitFeature}
+                limitHitTime={limitHitTime}
             />
             {/* Top Section: Chat Area ... */}
             <div className="flex-1 flex flex-col rounded-[2rem] border border-zinc-800 bg-zinc-900 overflow-hidden shadow-2xl min-h-[85vh] transition-all duration-500"
@@ -773,5 +817,6 @@ Please provide a complete analysis with specific entry, stop loss, and take prof
                 </div>
             </div>
         </div>
+
     )
 }

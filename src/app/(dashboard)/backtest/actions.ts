@@ -48,7 +48,9 @@ export async function createBacktestSession(formData: {
         .eq('id', user.id)
         .single()
 
-    const limit = userData?.backtest_count_limit ?? 3 // Default to Free limit if null
+    const limit = (userData?.plan_tier === 'FREE' || !userData?.plan_tier)
+        ? 2 // FREE plan: max 2 sessions
+        : (userData?.backtest_count_limit ?? 2) // Default to 2 if null
 
     // Count existing sessions
     const { count, error: countError } = await supabase
@@ -62,8 +64,7 @@ export async function createBacktestSession(formData: {
     }
 
     if ((count || 0) >= limit) {
-        // We can throw a specific error string that the UI can catch and show the upgrade dialog
-        throw new Error(`LIMIT_REACHED: You have reached the limit of ${limit} backtest sessions for the ${userData?.plan_tier || 'Free'} plan. Upgrade to create more.`)
+        throw new Error(`LIMIT_REACHED: You have reached the limit of ${limit} backtest sessions for the ${userData?.plan_tier || 'Free'} plan. Please delete an old session first, or upgrade to create more.`)
     }
 
     // 1. Calculate Range & Fetch Data

@@ -26,6 +26,7 @@ async function checkAILimit(userId: string, type: 'vision' | 'chat') {
     // 3. Reset Check (Manual Logic in case trigger missing)
     const today = new Date().toISOString().split('T')[0];
     let currentUsage = user.ai_usage_today || 0;
+    let lastUsageDate = user.last_usage_date || today;
 
     if (user.last_usage_date !== today) {
         currentUsage = 0; // Reset
@@ -36,7 +37,6 @@ async function checkAILimit(userId: string, type: 'vision' | 'chat') {
     }
 
     // 4. Limit Check
-    // Starter: Chat Limit = 10 (hardcoded rule), Vision Limit = ai_daily_limit (1)
     let limit = user.ai_daily_limit;
 
     if (type === 'chat' && user.plan_tier === 'STARTER') {
@@ -48,12 +48,16 @@ async function checkAILimit(userId: string, type: 'vision' | 'chat') {
     }
 
     if (currentUsage >= limit) {
-        throw new Error(`Daily Limit Reached! Upgrade to PRO for more.`);
+        // Include timing data for countdown: LIMIT_REACHED|lastUsageISO|limit|type
+        const now = new Date().toISOString();
+        throw new Error(`LIMIT_REACHED|${now}|${limit}|${type}`);
     }
 
-    // 5. Increment Usage
-    // We only increment "official" usage for Vision (or Starter Chat)
-    await supabase.from('users').update({ ai_usage_today: currentUsage + 1 }).eq('id', userId);
+    // 5. Increment Usage + update last_usage_date
+    await supabase.from('users').update({
+        ai_usage_today: currentUsage + 1,
+        last_usage_date: today
+    }).eq('id', userId);
 }
 
 export async function analyzeTrade(tradeId: string) {
