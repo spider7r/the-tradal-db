@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { getCheckoutUrl, markOnboardingComplete, setOnboardingCookie } from '../actions/billing'
+import { getCheckoutUrl, markOnboardingComplete, setOnboardingCookie, activateFreePlan } from '../actions/billing'
 import { createCryptoCheckout } from '../actions/crypto-billing'
 import { Loader2, Check, ShieldCheck, Zap, CreditCard, Lock, Sparkles, Clock, Bitcoin, BadgeCheck, User, ArrowLeft } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
@@ -143,13 +143,13 @@ function CheckoutPageContent() {
         if (safePlanParam === 'free') {
             setLoading(true)
             try {
-                // Route through LemonSqueezy checkout (Free Forever product, $0)
-                const result = await getCheckoutUrl('free', 'monthly', false)
-                if (result.url) window.location.href = result.url
-                else alert('Free plan checkout failed. Please try again.')
+                // Direct activation — no LemonSqueezy, no credit card required
+                await activateFreePlan()
+                await setOnboardingCookie()
+                router.push('/dashboard')
             } catch (error) {
-                console.error(error)
-                alert('An unexpected error occurred.')
+                console.error('Free plan activation error:', error)
+                alert('Failed to activate free plan. Please try again.')
             } finally {
                 setLoading(false)
             }
