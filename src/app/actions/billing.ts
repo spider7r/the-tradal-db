@@ -232,8 +232,8 @@ export async function activateFreePlan() {
             full_name: user.user_metadata?.full_name || user.user_metadata?.name || null,
             phone: user.user_metadata?.phone_number || null,
             onboarding_completed: true,
-            plan_tier: 'free',
-            subscription_status: 'free'
+            plan_tier: 'FREE',
+            subscription_status: 'active'
         }, { onConflict: 'id' })
 
     if (error) {
