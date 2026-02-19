@@ -10,27 +10,40 @@ export default async function SessionPage({ params }: PageProps) {
     const { id } = await params
     const supabase = await createClient()
 
-    // Verify session exists and belongs to user
-    const { data: session, error } = await supabase
+    // Try with joined candle data first, fallback to plain session
+    let session: any = null
+    let queryError: any = null
+
+    // First try: with candle_data join
+    const { data: sessionWithData, error: joinError } = await supabase
         .from('backtest_sessions')
         .select('*, backtest_session_data(candle_data)')
         .eq('id', id)
         .single()
 
-    if (error || !session) {
-        notFound()
+    if (!joinError && sessionWithData) {
+        session = sessionWithData
+        // Merge optimized data back into session object for compatibility
+        if (session.backtest_session_data && session.backtest_session_data.length > 0) {
+            session.candle_data = session.backtest_session_data[0].candle_data
+        }
+        if (session.backtest_session_data) delete session.backtest_session_data
+    } else {
+        // Fallback: plain select without join (relation might not exist)
+        console.warn('[Session] Join query failed, falling back to plain select:', joinError?.message)
+        const { data: plainSession, error: plainError } = await supabase
+            .from('backtest_sessions')
+            .select('*')
+            .eq('id', id)
+            .single()
+
+        if (plainError || !plainSession) {
+            notFound()
+        }
+        session = plainSession
     }
 
-    // Merge optimized data back into session object for compatibility
-    // @ts-ignore
-    if (session.backtest_session_data && session.backtest_session_data.length > 0) {
-        // @ts-ignore
-        session.candle_data = session.backtest_session_data[0].candle_data
-    }
-    // @ts-ignore
-    if (session.backtest_session_data) delete session.backtest_session_data
-
-    if (error || !session) {
+    if (!session) {
         notFound()
     }
 

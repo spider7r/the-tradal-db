@@ -4,7 +4,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // --- CONFIGURATION ---
 const GROQ_TEXT_MODEL = 'llama-3.3-70b-specdec'; // Fastest Text
-const OPENROUTER_VISION_MODEL = 'google/gemini-2.0-flash-exp:free'; // Best Free Vision
+const OPENROUTER_VISION_MODEL = 'google/gemini-2.5-flash-preview:free'; // Best Free Vision
 const CEREBRAS_MODEL = 'llama3.1-70b';
 const GEMINI_MODEL = 'models/gemini-2.5-flash';
 
@@ -265,7 +265,7 @@ class GeminiProvider implements AIProvider {
     while (attempts < this.keys.length) {
       try {
         const client = this.getNextClient();
-        const model = client.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+        const model = client.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
         let parts: any[] = [];
 
@@ -561,29 +561,29 @@ class AIManager {
       return `${response}\n\n---\n*🤖 Powered by: Tradal AI*`;
     };
 
-    // SMART ROUTING: Text chat uses Groq (fastest), Vision uses Gemini (best quality)
+    // SMART ROUTING: Gemini Primary (Groq keys expired), fallback chain
 
     if (!hasImage) {
-      // --- TEXT CHAT MODE: Groq First (Fastest 3-5 sec) ---
+      // --- TEXT CHAT MODE: Gemini First (15 keys available) ---
       try {
-        console.log('[Router] TEXT MODE - Trying Groq (Fastest)...');
+        console.log('[Router] TEXT MODE - Trying Gemini (Primary, 15 keys)...');
+        const response = await this.geminiProvider.generate(message, systemPrompt);
+        return addProviderFooter(response, 'Gemini 2.5 Flash');
+      } catch (e: any) {
+        const msg = `Gemini: ${e.message} (Status: ${e.status || 'Unknown'})`;
+        errors.push(msg);
+        console.warn("[Router] Gemini failed:", e.message);
+      }
+
+      // Fallback to Groq for text (if keys get renewed)
+      try {
+        console.log('[Router] TEXT MODE - Trying Groq (Fallback)...');
         const response = await this.groqSwarm.generate(message, systemPrompt);
         return addProviderFooter(response, 'Groq (Llama 3.3 70B)');
       } catch (e: any) {
         const msg = `Groq: ${e.message} (Status: ${e.status || 'Unknown'})`;
         errors.push(msg);
         console.warn("[Router] Groq failed:", e.message);
-      }
-
-      // Fallback to Gemini for text
-      try {
-        console.log('[Router] TEXT MODE - Trying Gemini (Fallback)...');
-        const response = await this.geminiProvider.generate(message, systemPrompt);
-        return addProviderFooter(response, 'Gemini 2.0 Flash');
-      } catch (e: any) {
-        const msg = `Gemini: ${e.message} (Status: ${e.status || 'Unknown'})`;
-        errors.push(msg);
-        console.warn("[Router] Gemini failed:", e.message);
       }
     } else {
       // --- VISION MODE: Gemini First (Best Quality) ---

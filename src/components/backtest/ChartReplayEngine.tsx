@@ -250,7 +250,7 @@ export function ChartReplayEngine({ initialSession, initialTrades = [] }: ChartR
             // enough candles to play forward through. Without this, currentIndex
             // starts near the end of the array and play auto-pauses immediately.
             const extendedEndTime = endTime
-                ? endTime + (30 * 24 * 60 * 60 * 1000) // Add 30 days beyond end_date
+                ? endTime + (7 * 24 * 60 * 60 * 1000) // Add 7 days beyond end_date (was 30)
                 : undefined
 
             // ═══════════════════════════════════════════════════════════════
@@ -294,14 +294,14 @@ export function ChartReplayEngine({ initialSession, initialTrades = [] }: ChartR
 
                 // FIX: Calculate needed candles including FORWARD buffer
                 // Previously only counted session duration, leaving no room to play forward
-                let neededCandles = 50000
+                let neededCandles = 20000
                 if (startTime) {
                     const preBufferMinutes = 200 * 15 // ~50 hours before start
-                    // Forward buffer: use endTime if available, otherwise add 30 days
-                    const effectiveEnd = endTime || (startTime + 30 * 24 * 60 * 1000)
+                    // Forward buffer: use endTime if available, otherwise add 7 days
+                    const effectiveEnd = endTime || (startTime + 7 * 24 * 60 * 1000)
                     const sessionMinutes = (effectiveEnd - startTime) / (60 * 1000)
-                    // Add extra 30 days of forward data for playback headroom
-                    const forwardBufferMinutes = 30 * 24 * 60
+                    // Add 7 days of forward data (more loaded on demand via progressive loading)
+                    const forwardBufferMinutes = 7 * 24 * 60
                     neededCandles = Math.ceil(preBufferMinutes + sessionMinutes + forwardBufferMinutes + 500)
                     console.log(`  Session: ${(sessionMinutes / 60).toFixed(1)} hours`)
                     console.log(`  Pre-buffer: ${(preBufferMinutes / 60).toFixed(1)} hours`)
@@ -309,11 +309,11 @@ export function ChartReplayEngine({ initialSession, initialTrades = [] }: ChartR
                     console.log(`  Total 1m candles needed: ${neededCandles}`)
                 }
 
-                const limit = Math.min(neededCandles, 100000)
+                const limit = Math.min(neededCandles, 30000)
 
                 try {
                     const timeoutPromise = new Promise((_, reject) =>
-                        setTimeout(() => reject(new Error("Data load timeout")), 90000)
+                        setTimeout(() => reject(new Error("Data load timeout")), 180000)
                     )
 
                     console.log(`[Backtest] Calling fetchMarketData('${pair}', '1m', ${limit}, ${fetchStart}, ${extendedEndTime})`)
