@@ -15,6 +15,7 @@ interface BacktestTVChartProps {
     onPlaceOrder?: () => void
     onReset?: () => void
     onIntervalChange?: (interval: string) => void
+    onRequestMoreHistory?: () => void // Triggered when user scrolls back past earliest data
     sessionStartTime?: number
     currentTime?: number
     sessionId?: string // For per-session drawing persistence
@@ -63,7 +64,8 @@ const mapIntervalToSeconds = (interval: string) => {
 const createBacktestDatafeed = (
     dataRef: React.MutableRefObject<Candle[]>,
     currentIntervalRef: React.MutableRefObject<string>,
-    onIntervalChange?: (i: string) => void
+    onIntervalChange?: (i: string) => void,
+    onRequestMoreHistory?: () => void
 ) => {
     const supportedResolutions = ['1', '5', '15', '60', '240', 'D', 'W']
 
@@ -183,10 +185,15 @@ const createBacktestDatafeed = (
             // Get data range (timestamps are in SECONDS in our data)
             const dataFirstTime = currentData[0].time
 
-            // CRITICAL FIX: If TradingView is requesting data BEFORE our earliest data,
-            // return noData to stop the infinite loop of historical requests
+            // If TradingView is requesting data BEFORE our earliest data,
+            // trigger background fetch for more history instead of hard-stopping
             if (to < dataFirstTime) {
-                console.log('[TV Datafeed] ⛔ Request is before our data range, stopping history fetch')
+                console.log('[TV Datafeed] 📜 Request is before our data range, requesting more history...')
+                // Trigger background fetch (non-blocking)
+                if (onRequestMoreHistory) {
+                    onRequestMoreHistory()
+                }
+                // Return noData for now — chart will update when new data arrives
                 onHistoryCallback([], { noData: true })
                 return
             }
@@ -232,6 +239,7 @@ export default function BacktestTVChart({
     onPlaceOrder,
     onReset,
     onIntervalChange,
+    onRequestMoreHistory,
     sessionStartTime,
     currentTime,
     sessionId
@@ -348,7 +356,7 @@ export default function BacktestTVChart({
                 return
             }
             const tvInterval = mapIntervalToTV(interval)
-            const datafeed = createBacktestDatafeed(dataRef, intervalRef, onIntervalChange)
+            const datafeed = createBacktestDatafeed(dataRef, intervalRef, onIntervalChange, onRequestMoreHistory)
 
             const originalSubscribe = datafeed.subscribeBars
             datafeed.subscribeBars = (symbolInfo: any, resolution: string, onRealtimeCallback: any, listenerGuid: string, onResetCacheNeededCallback: any) => {

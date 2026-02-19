@@ -569,35 +569,29 @@ export function ChartReplayEngine({ initialSession, initialTrades = [] }: ChartR
     const realizedPnl = balance - (initialSession?.initial_balance || 100000)
 
     // ═══════════════════════════════════════════════════════════════
-    // PROGRESSIVE HISTORY LOADING (User Request)
+    // PROGRESSIVE HISTORY LOADING (Background, silent)
     // ═══════════════════════════════════════════════════════════════
-    useEffect(() => {
-        if (isLoading || isTimeframeSwitchingRef.current) return
+    const triggerLoadMoreHistory = useCallback(() => {
+        if (isFetchingHistoryRef.current) return
+        if (!prefetchedDataRef.current || prefetchedDataRef.current.length >= 250000) return
+        if (historyLoadCountRef.current >= 10) return // Max 10 chunks
 
-        const checkAndLoadMore = async () => {
-            // Soft limit: ~250k candles of 1m data (approx 6 months)
-            // If we have less than this, try to fetch more history
-            if (!prefetchedDataRef.current || prefetchedDataRef.current.length >= 250000) return
-            if (isFetchingHistoryRef.current) return
-            if (historyLoadCountRef.current >= 5) return // Max 5 chunks to avoid endless loop
-
+        const loadMore = async () => {
             isFetchingHistoryRef.current = true
             try {
                 const current1m = prefetchedDataRef.current
+                if (!current1m || current1m.length === 0) return
                 const oldestTime = current1m[0].time * 1000 // ms
 
-                // Fetch chunk: 45 days back
                 const chunkDuration = 45 * 24 * 60 * 60 * 1000
                 const fetchEnd = oldestTime
                 const fetchStart = oldestTime - chunkDuration
 
-                console.log(`[Backtest] 🕰️ Fetching history chunk ${historyLoadCountRef.current + 1}...`)
-                console.log(`   End: ${new Date(fetchEnd).toISOString()}`)
+                console.log(`[Backtest] 🕰️ Fetching history chunk ${historyLoadCountRef.current + 1} (silent)...`)
 
                 const rawChunk = await fetchMarketData(pair, '1m', 60000, fetchStart, fetchEnd)
 
                 if (rawChunk && rawChunk.length > 0) {
-                    // Clean & Filter
                     const cleaned = rawChunk
                         .filter((c: any) =>
                             c.time > 0 && !isNaN(c.open) && c.volume > 0 &&
@@ -605,7 +599,6 @@ export function ChartReplayEngine({ initialSession, initialTrades = [] }: ChartR
                         )
                         .sort((a: any, b: any) => a.time - b.time)
 
-                    // Filter duplicates against existing start
                     const firstExistingTime = current1m[0].time
                     const finalChunk = cleaned
                         .filter((c: any) => c.time < firstExistingTime)
@@ -619,26 +612,17 @@ export function ChartReplayEngine({ initialSession, initialTrades = [] }: ChartR
                         })) as Candle[]
 
                     if (finalChunk.length > 0) {
-                        console.log(`[Backtest] 🕰️ Loaded ${finalChunk.length} older candles`)
-                        // 1. Update Global Cache (Source of Truth)
+                        console.log(`[Backtest] 🕰️ Loaded ${finalChunk.length} older candles (silent)`)
                         const newData1m = [...finalChunk, ...current1m]
                         prefetchedDataRef.current = newData1m
 
-                        // 2. Aggregate for current view
                         const aggChunk = interval === '1m' ? finalChunk : aggregateCandles(finalChunk as Candle[], interval as Timeframe)
 
-                        // 3. Atomically Update State
                         setFullData(prev => [...(aggChunk as Candle[]), ...prev])
                         setCurrentIndex(prev => prev + aggChunk.length)
 
-                        // 4. Feedback
-                        toast.success(`Loaded ${finalChunk.length} historical candles`)
+                        // No toast — silent background loading
                         historyLoadCountRef.current++
-
-                        // Schedule next chunk
-                        setTimeout(checkAndLoadMore, 2000)
-                    } else {
-                        console.log('[Backtest] 🕰️ No new history found in chunk period')
                     }
                 }
             } catch (err) {
@@ -647,11 +631,17 @@ export function ChartReplayEngine({ initialSession, initialTrades = [] }: ChartR
                 isFetchingHistoryRef.current = false
             }
         }
+        loadMore()
+    }, [pair, interval])
 
-        // Start checking 2 seconds after initial load
-        const timer = setTimeout(checkAndLoadMore, 2000)
+    useEffect(() => {
+        if (isLoading || isTimeframeSwitchingRef.current) return
+
+        // Auto-load first chunk 2 seconds after initial load
+        // Start auto-load check 2 seconds after initial load
+        const timer = setTimeout(() => triggerLoadMoreHistory(), 2000)
         return () => clearTimeout(timer)
-    }, [isLoading, interval, pair]) // Re-run if interval changes (reset check) or pair changes
+    }, [isLoading, interval, pair, triggerLoadMoreHistory])
 
     return (
         <div className="flex flex-col h-screen bg-[#000000] text-[#d1d4dc] overflow-hidden font-sans select-none">
@@ -718,6 +708,7 @@ export function ChartReplayEngine({ initialSession, initialTrades = [] }: ChartR
                         onPlaceOrder={() => setShowOrderPanel(true)}
                         onReset={() => setCurrentIndex(0)} // This might need to reset to 'startIndex' not 0? 
                         onIntervalChange={setInterval}
+                        onRequestMoreHistory={triggerLoadMoreHistory}
                         sessionId={sessionId || undefined}
                         sessionStartTime={(() => {
                             const st = initialSession?.start_date ? new Date(initialSession.start_date).getTime() : undefined
