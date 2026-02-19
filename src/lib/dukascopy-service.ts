@@ -32,15 +32,41 @@ export async function fetchDukascopyData(
         console.log(`[Dukascopy] Fetching ${pair} ${interval} limit=${limit}...`)
 
         // 1. Normalize Symbol
-        // Remove prefixes like "FX:", "OANDA:", "FOREX:" and lower case
+        // Remove ALL known prefixes and normalize to Dukascopy instrument format
         let instrument = pair
             .replace('FX:', '')
             .replace('OANDA:', '')
             .replace('FOREX:', '')
+            .replace('TVC:', '')
+            .replace('BINANCE:', '')
+            .replace('NASDAQ:', '')
+            .replace('NYSE:', '')
             .toLowerCase()
+            .trim()
 
-        // Handle common metal symbols
-        if (instrument === 'xauusd') instrument = 'xauusd' // explicit check just in case
+        // Handle common metal/commodity symbol mappings to Dukascopy instrument names
+        const symbolMap: Record<string, string> = {
+            'xauusd': 'xauusd',      // Gold
+            'xagusd': 'xagusd',      // Silver
+            'xaueur': 'xaueur',      // Gold/EUR
+            'xauaud': 'xauaud',      // Gold/AUD
+            'xaugbp': 'xaugbp',      // Gold/GBP
+            'xageur': 'xageur',      // Silver/EUR
+            'platinum': 'xptusd',    // Platinum → Dukascopy format
+            'palladium': 'xpdusd',   // Palladium → Dukascopy format
+            'usoil': 'usousd',       // US Crude Oil → Dukascopy WTI
+            'ukoil': 'ukousd',       // UK Brent Oil → Dukascopy Brent
+            'wti': 'usousd',         // Alias
+            'brent': 'ukousd',       // Alias
+        }
+
+        if (symbolMap[instrument]) {
+            const mapped = symbolMap[instrument]
+            if (mapped !== instrument) {
+                console.log(`[Dukascopy] Symbol mapping: ${instrument} → ${mapped}`)
+            }
+            instrument = mapped
+        }
 
         // 2. Resolve Timeframe
         const timeFrame = intervalMap[interval] || Timeframe.h1
@@ -65,9 +91,10 @@ export async function fetchDukascopyData(
         }
         const msPerCandle = msPerCandleMap[interval] || 60000
         const rangeMs = limit * msPerCandle
-        // Add buffer to ensure we get enough candles
+        // Add buffer to ensure we get enough candles (market weekends/holidays)
         const fromDate = new Date(toDate.getTime() - (rangeMs * 1.5))
 
+        console.log(`[Dukascopy] Instrument: ${instrument}`)
         console.log(`[Dukascopy] Range: ${fromDate.toISOString()} -> ${toDate.toISOString()}`)
 
         const data = await getHistoricalRates({
@@ -81,7 +108,13 @@ export async function fetchDukascopyData(
             useCache: false
         })
 
-        console.log(`[Dukascopy] Fetched ${data.length} candles`)
+        console.log(`[Dukascopy] Fetched ${data.length} candles for ${instrument}`)
+
+        if (data.length === 0) {
+            console.warn(`[Dukascopy] ⚠️ Zero candles returned for instrument "${instrument}". Is this symbol supported by Dukascopy?`)
+            console.warn(`[Dukascopy]   Original pair: ${pair}`)
+            console.warn(`[Dukascopy]   Date range: ${fromDate.toISOString()} → ${toDate.toISOString()}`)
+        }
 
         // 4. Transform to Candle interface
         // Dukascopy returns: { timestamp, open, high, low, close, volume }
@@ -100,8 +133,10 @@ export async function fetchDukascopyData(
         // Trim to limit from the end
         return candles.slice(-limit)
 
-    } catch (error) {
-        console.error('[Dukascopy] Error fetching data:', error)
+    } catch (error: any) {
+        console.error('[Dukascopy] ❌ Error fetching data:', error?.message || error)
+        console.error(`[Dukascopy]   Pair: ${pair}, Interval: ${interval}, Limit: ${limit}`)
         return []
     }
 }
+

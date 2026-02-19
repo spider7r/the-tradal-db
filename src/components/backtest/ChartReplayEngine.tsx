@@ -245,6 +245,13 @@ export function ChartReplayEngine({ initialSession, initialTrades = [] }: ChartR
             const startTime = initialSession?.start_date ? new Date(initialSession.start_date).getTime() : undefined
             const endTime = initialSession?.end_date ? new Date(initialSession.end_date).getTime() : undefined
 
+            // FIX: Ensure we fetch data WELL BEYOND end_date so there are
+            // enough candles to play forward through. Without this, currentIndex
+            // starts near the end of the array and play auto-pauses immediately.
+            const extendedEndTime = endTime
+                ? endTime + (30 * 24 * 60 * 60 * 1000) // Add 30 days beyond end_date
+                : undefined
+
             // ═══════════════════════════════════════════════════════════════
             // STEP 1: Get 1m base data
             // Priority: 1) Local ref cache → 2) Global prefetch cache → 3) Fresh Dukascopy fetch
@@ -280,18 +287,24 @@ export function ChartReplayEngine({ initialSession, initialTrades = [] }: ChartR
                 setIsLoading(true)
                 console.log(`[Backtest] 📡 Fetching 1m base data for ${pair}...`)
 
-                // Buffer: 200 candles of 15m = 3000 x 1m candles before session start
-                const bufferMs = 200 * 15 * 60 * 1000 // 50 hours
+                // Buffer: 200 candles of 15m = 3000 x 1m candles BEFORE session start
+                const bufferMs = 200 * 15 * 60 * 1000 // 50 hours before
                 const fetchStart = startTime ? startTime - bufferMs : undefined
 
-                // Calculate needed candles
+                // FIX: Calculate needed candles including FORWARD buffer
+                // Previously only counted session duration, leaving no room to play forward
                 let neededCandles = 50000
-                if (startTime && endTime) {
-                    const sessionMinutes = (endTime - startTime) / (60 * 1000)
-                    const bufferMinutes = 200 * 15
-                    neededCandles = Math.ceil(sessionMinutes + bufferMinutes + 100)
+                if (startTime) {
+                    const preBufferMinutes = 200 * 15 // ~50 hours before start
+                    // Forward buffer: use endTime if available, otherwise add 30 days
+                    const effectiveEnd = endTime || (startTime + 30 * 24 * 60 * 1000)
+                    const sessionMinutes = (effectiveEnd - startTime) / (60 * 1000)
+                    // Add extra 30 days of forward data for playback headroom
+                    const forwardBufferMinutes = 30 * 24 * 60
+                    neededCandles = Math.ceil(preBufferMinutes + sessionMinutes + forwardBufferMinutes + 500)
                     console.log(`  Session: ${(sessionMinutes / 60).toFixed(1)} hours`)
-                    console.log(`  Buffer: ${(bufferMinutes / 60).toFixed(1)} hours`)
+                    console.log(`  Pre-buffer: ${(preBufferMinutes / 60).toFixed(1)} hours`)
+                    console.log(`  Forward buffer: ${(forwardBufferMinutes / 60).toFixed(1)} hours`)
                     console.log(`  Total 1m candles needed: ${neededCandles}`)
                 }
 
@@ -302,9 +315,9 @@ export function ChartReplayEngine({ initialSession, initialTrades = [] }: ChartR
                         setTimeout(() => reject(new Error("Data load timeout")), 90000)
                     )
 
-                    console.log(`[Backtest] Calling fetchMarketData('${pair}', '1m', ${limit}, ${fetchStart}, ${endTime})`)
+                    console.log(`[Backtest] Calling fetchMarketData('${pair}', '1m', ${limit}, ${fetchStart}, ${extendedEndTime})`)
                     const rawData = await Promise.race([
-                        fetchMarketData(pair, '1m', limit, fetchStart, endTime),
+                        fetchMarketData(pair, '1m', limit, fetchStart, extendedEndTime),
                         timeoutPromise
                     ]) as any[]
 
@@ -409,13 +422,25 @@ export function ChartReplayEngine({ initialSession, initialTrades = [] }: ChartR
                 }
             }
 
-            // Ensure minimum visible candles
+            // Ensure minimum visible candles (but NOT near end of array!)
             const minVisible = 50
             if (newIndex < minVisible && data.length > minVisible) {
                 newIndex = minVisible - 1
             } else if (newIndex < minVisible && data.length <= minVisible) {
-                newIndex = data.length - 1
+                newIndex = Math.max(0, data.length - 1)
             }
+
+            // FIX: Ensure currentIndex is NOT near end of array!
+            // If it is, there are no candles to play forward through.
+            const forwardRoom = data.length - newIndex
+            if (forwardRoom < 50 && data.length > 100) {
+                console.warn(`[Backtest] ⚠️ Only ${forwardRoom} candles ahead of current position!`)
+                console.warn(`  This means play will auto-pause almost immediately.`)
+                console.warn(`  Data length: ${data.length}, newIndex: ${newIndex}`)
+                // Don't adjust — just warn. The extended fetch range above should prevent this.
+            }
+
+            console.log(`[Backtest] 📍 Position: index ${newIndex}/${data.length}, forward room: ${forwardRoom} candles`)
 
             // ═══════════════════════════════════════════════════════════════
             // STEP 4: Update state — triggers chart render
@@ -470,7 +495,9 @@ export function ChartReplayEngine({ initialSession, initialTrades = [] }: ChartR
     // Replay Logic
     const stepForward = useCallback(() => {
         setCurrentIndex(prev => {
-            if (prev >= fullDataRef.current.length - 1) {
+            const dataLen = fullDataRef.current.length
+            if (prev >= dataLen - 1) {
+                console.warn(`[Backtest] ⛔ Reached end of data (index ${prev}/${dataLen}). Pausing.`)
                 setIsPlaying(false)
                 return prev
             }
@@ -691,6 +718,7 @@ export function ChartReplayEngine({ initialSession, initialTrades = [] }: ChartR
                         onPlaceOrder={() => setShowOrderPanel(true)}
                         onReset={() => setCurrentIndex(0)} // This might need to reset to 'startIndex' not 0? 
                         onIntervalChange={setInterval}
+                        sessionId={sessionId || undefined}
                         sessionStartTime={(() => {
                             const st = initialSession?.start_date ? new Date(initialSession.start_date).getTime() : undefined
                             console.log('📅 [ChartReplayEngine] Passing sessionStartTime to chart:', st, st ? new Date(st).toISOString() : 'undefined')

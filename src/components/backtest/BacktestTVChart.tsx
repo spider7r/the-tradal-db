@@ -17,6 +17,7 @@ interface BacktestTVChartProps {
     onIntervalChange?: (interval: string) => void
     sessionStartTime?: number
     currentTime?: number
+    sessionId?: string // For per-session drawing persistence
 }
 
 const mapIntervalToTV = (interval: string) => {
@@ -232,7 +233,8 @@ export default function BacktestTVChart({
     onReset,
     onIntervalChange,
     sessionStartTime,
-    currentTime
+    currentTime,
+    sessionId
 }: BacktestTVChartProps) {
     const chartContainerRef = useRef<HTMLDivElement>(null)
     const widgetRef = useRef<any>(null)
@@ -552,8 +554,8 @@ export default function BacktestTVChart({
                             console.warn('   This means the prop was not passed or was undefined at initialization.')
                         }
 
-                        // PHASE 2: Drawing Persistence (Auto-Load)
-                        const STORAGE_KEY = 'backtest_drawings_v4'
+                        // PHASE 2: Drawing Persistence (Auto-Load) — per-session
+                        const STORAGE_KEY = sessionId ? `backtest_drawings_v4_${sessionId}` : 'backtest_drawings_v4'
                         const savedState = localStorage.getItem(STORAGE_KEY)
                         if (savedState) {
                             try {
@@ -579,7 +581,7 @@ export default function BacktestTVChart({
         // ═══════════════════════════════════════════════════════════
         // PHASE 2: AUTO-SAVE (Back to widget.save() - simple approach)
         // ═══════════════════════════════════════════════════════════
-        const STORAGE_KEY = 'backtest_drawings_v4'
+        const STORAGE_KEY = sessionId ? `backtest_drawings_v4_${sessionId}` : 'backtest_drawings_v4'
 
         const saveInterval = setInterval(() => {
             if (widgetRef.current && widgetReadyRef.current) {
@@ -743,7 +745,7 @@ export default function BacktestTVChart({
         }
 
         // Save drawings before switch
-        const STORAGE_KEY = 'backtest_drawings_v4'
+        const STORAGE_KEY = sessionId ? `backtest_drawings_v4_${sessionId}` : 'backtest_drawings_v4'
         try {
             widgetRef.current.save((state: any) => {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, savedAt: Date.now(), interval }))

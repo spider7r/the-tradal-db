@@ -2,12 +2,12 @@ import TradingView from '@mathieuc/tradingview'
 import { Candle } from '@/lib/types'
 import { fetchBinanceData } from './binance'
 import { fetchDukascopyData } from './dukascopy-service'
-import { AssetCategory, ASSET_CATEGORIES } from './assets'
+import { AssetCategory, ASSET_CATEGORIES, TV_SYMBOL_MAP } from './assets'
 
 /**
  * Auto-detect asset category from symbol name.
- * This allows the system to route to the correct data source even when
- * category is not explicitly provided (e.g., loading existing sessions).
+ * Assets are now stored as clean names (no prefixes), so we just
+ * strip any incoming prefix and do a direct match.
  */
 export function detectCategory(symbol: string): AssetCategory | undefined {
     const clean = symbol
@@ -20,18 +20,10 @@ export function detectCategory(symbol: string): AssetCategory | undefined {
         .replace('NYSE:', '')
         .toUpperCase()
 
-    // Check exact match against all known assets
+    // Direct match against clean asset names
     for (const [cat, assets] of Object.entries(ASSET_CATEGORIES)) {
         for (const asset of assets) {
-            const cleanAsset = asset
-                .replace('BINANCE:', '')
-                .replace('FX:', '')
-                .replace('OANDA:', '')
-                .replace('TVC:', '')
-                .replace('NASDAQ:', '')
-                .replace('NYSE:', '')
-                .toUpperCase()
-            if (clean === cleanAsset) {
+            if (clean === asset.toUpperCase()) {
                 return cat as AssetCategory
             }
         }

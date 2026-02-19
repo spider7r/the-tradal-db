@@ -19,7 +19,7 @@ export async function getStrategiesList() {
 }
 
 import { fetchHistoricalData, detectCategory } from '@/lib/data-service'
-import { AssetCategory } from '@/lib/assets'
+import { AssetCategory, TV_SYMBOL_MAP } from '@/lib/assets'
 
 export async function createBacktestSession(formData: {
     name: string
@@ -205,11 +205,17 @@ export async function fetchMarketData(
     }
     const tvInterval = intervalMap[interval] || '60'
 
-    // Format symbol for TradingView fallback
+    // Format symbol for the correct data source
     let symbol = pair
     if (!symbol.includes(':')) {
-        if (symbol.includes('USDT')) symbol = `BINANCE:${symbol}`
-        else symbol = `FX:${symbol}`
+        // Check TV_SYMBOL_MAP first for indices/stocks (need correct exchange prefix)
+        const cleanUpper = symbol.toUpperCase()
+        if (TV_SYMBOL_MAP[cleanUpper]) {
+            symbol = TV_SYMBOL_MAP[cleanUpper]
+        } else if (symbol.toUpperCase().includes('USDT')) {
+            symbol = `BINANCE:${symbol}`
+        }
+        // Forex/Metals don't need a prefix — Dukascopy strips them anyway
     }
 
     console.log(`[fetchMarketData] Final symbol: ${symbol}, TV interval: ${tvInterval}`)
