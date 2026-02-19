@@ -9,6 +9,7 @@ interface BacktestTVChartProps {
     symbol?: string // Trading pair name (e.g., EURUSD)
     orders?: any[]
     trades?: any[]
+    currentPrice?: number // Live price for PnL calculation
     isPlaying?: boolean
     onPlayPause?: () => void
     onStepForward?: () => void
@@ -16,6 +17,7 @@ interface BacktestTVChartProps {
     onReset?: () => void
     onIntervalChange?: (interval: string) => void
     onRequestMoreHistory?: () => void // Triggered when user scrolls back past earliest data
+    onCloseTrade?: (tradeId: string) => void // Manual close from chart
     sessionStartTime?: number
     currentTime?: number
     sessionId?: string // For per-session drawing persistence
@@ -230,9 +232,10 @@ const createBacktestDatafeed = (
 export default function BacktestTVChart({
     data,
     interval,
-    symbol = 'BTCUSDT', // Default symbol
+    symbol,
     orders,
     trades,
+    currentPrice,
     isPlaying,
     onPlayPause,
     onStepForward,
@@ -240,6 +243,7 @@ export default function BacktestTVChart({
     onReset,
     onIntervalChange,
     onRequestMoreHistory,
+    onCloseTrade,
     sessionStartTime,
     currentTime,
     sessionId
@@ -876,160 +880,177 @@ export default function BacktestTVChart({
         orderShapesRef.current = []
     }
 
-    // Effect to Draw Shapes when Orders/Trades change
+    // ===============================================================
+    // TRADE LINES: EP / TP / SL with Live PnL (Professional Style)
+    // ===============================================================
+    const tradeLinesRef = useRef<any[]>([])
+
+    const clearTradeLines = () => {
+        tradeLinesRef.current.forEach(line => {
+            try { line.remove() } catch (e) { /* already removed */ }
+        })
+        tradeLinesRef.current = []
+    }
+
     useEffect(() => {
-        console.log('[TV Chart] 📐 SHAPES USEEFFECT - Drawing orders/trades')
-
-        if (!widgetRef.current) {
-            console.log('  ⚠️  No widget, skipping shapes')
-            return
-        }
-
-        if (!widgetRef.current.activeChart) {
-            console.log('  ⚠️  Widget exists but activeChart() not available yet')
-            return
-        }
-
-        if (!data || data.length === 0) {
-            console.log('  ⚠️  No data, skipping shapes')
-            return
-        }
-
-        console.log('  ✅ Drawing shapes for', orders?.length || 0, 'orders and', trades?.length || 0, 'trades')
+        if (!widgetRef.current || !widgetRef.current.activeChart) return
+        if (!data || data.length === 0) return
 
         let chart: any
         try {
             chart = widgetRef.current.activeChart()
-        } catch (e) {
-            console.warn('[TV Chart] ⚠️ Failed to get activeChart, widget might not be ready:', e)
-            return
-        }
-
+        } catch (e) { return }
         if (!chart) return
 
-        clearShapes()
+        // Clear previous lines
+        clearTradeLines()
 
-        // Get latest candle time for positioning
-        const latestTime = data[data.length - 1].time < 10000000000
-            ? data[data.length - 1].time
-            : data[data.length - 1].time / 1000
+        const price = currentPrice || (data.length > 0 ? data[data.length - 1].close : 0)
 
-        // 1. Draw PENDING ORDERS
+        // Helper: Format PnL with $ sign
+        const formatPnl = (pnl: number) => {
+            const sign = pnl >= 0 ? '+' : ''
+            return sign + '$' + Math.abs(pnl).toFixed(2)
+        }
+
+        // Helper: Format price for display
+        const formatPrice = (p: number) => {
+            if (p >= 1000) return p.toFixed(2)
+            if (p >= 10) return p.toFixed(4)
+            return p.toFixed(5)
+        }
+
+        // 1. Draw PENDING ORDERS as order lines
         orders?.forEach(order => {
             if (order.status !== 'PENDING') return
-
-            const price = order.limitPrice || order.stopPrice
-            if (!price) return
+            const orderPrice = order.limitPrice || order.stopPrice
+            if (!orderPrice) return
 
             try {
-                // Arrow pointing to the order level
-                const shapeId = chart.createMultipointShape(
-                    [{ time: latestTime, price: price }],
-                    {
-                        shape: 'arrow_up',
-                        overrides: {
-                            backgroundColor: order.side === 'LONG' ? '#3b82f6' : '#f97316',
-                            borderColor: order.side === 'LONG' ? '#3b82f6' : '#f97316',
-                            textColor: '#ffffff',
-                            transparency: 20
-                        },
-                        text: `${order.side} ${order.type}`,
-                        lock: true,
-                        disableSelection: true,
-                        disableSave: true,
-                        disableUndo: true,
-                        zOrder: 'top'
-                    }
-                )
-                orderShapesRef.current.push(shapeId)
+                const line = chart.createOrderLine()
+                    .setPrice(orderPrice)
+                    .setText(order.side + ' ' + order.type)
+                    .setQuantity((order.quantity || 1).toFixed(2))
+                    .setLineColor(order.side === 'LONG' ? '#3b82f6' : '#f97316')
+                    .setBodyBackgroundColor(order.side === 'LONG' ? '#1e3a5f' : '#5f3a1e')
+                    .setBodyTextColor('#ffffff')
+                    .setBodyBorderColor(order.side === 'LONG' ? '#3b82f6' : '#f97316')
+                    .setQuantityBackgroundColor(order.side === 'LONG' ? '#3b82f6' : '#f97316')
+                    .setQuantityTextColor('#ffffff')
+                    .setQuantityBorderColor(order.side === 'LONG' ? '#2563eb' : '#ea580c')
+                    .setCancelButtonBackgroundColor('#374151')
+                    .setCancelButtonBorderColor('#6b7280')
+                    .setCancelButtonIconColor('#ffffff')
+                    .setLineLength(25)
+                    .setLineStyle(2)
+                    .setExtendLeft(false)
+                    .setTooltip(order.side + ' ' + order.type + ' @ ' + formatPrice(orderPrice))
+                tradeLinesRef.current.push(line)
             } catch (e) {
-                console.warn('Failed to create order shape:', e)
+                console.warn('[TV Chart] Failed to create order line:', e)
             }
         })
 
-        // 2. Draw OPEN TRADES (Entry, TP, SL)
+        // 2. Draw OPEN TRADES with Entry, TP, SL lines + Live PnL
         trades?.forEach(trade => {
             if (trade.status !== 'OPEN') return
 
-            try {
-                // Entry Marker
-                const entryId = chart.createMultipointShape(
-                    [{ time: latestTime, price: trade.entryPrice }],
-                    {
-                        shape: 'arrow_right',
-                        overrides: {
-                            backgroundColor: trade.side === 'LONG' ? '#22c55e' : '#ef4444',
-                            borderColor: trade.side === 'LONG' ? '#22c55e' : '#ef4444',
-                            textColor: '#ffffff'
-                        },
-                        text: `${trade.side} ENTRY`,
-                        lock: true,
-                        disableSelection: true,
-                        disableSave: true,
-                        disableUndo: true,
-                        zOrder: 'top'
-                    }
-                )
-                orderShapesRef.current.push(entryId)
+            const qty = trade.quantity || 1
+            const isLong = trade.side === 'LONG'
+            const priceDiff = isLong ? (price - trade.entryPrice) : (trade.entryPrice - price)
+            const livePnl = priceDiff * qty
 
-                // Stop Loss Line
-                if (trade.stopLoss) {
-                    const slId = chart.createMultipointShape(
-                        [{ time: latestTime, price: trade.stopLoss }],
-                        {
-                            shape: 'horizontal_line',
-                            overrides: {
-                                linecolor: '#ef4444',
-                                linewidth: 2,
-                                linestyle: 2, // Dashed
-                                showLabel: true,
-                                textcolor: '#ef4444',
-                                horzLabelsAlign: 'right'
-                            },
-                            text: 'SL',
-                            lock: true,
-                            disableSelection: true,
-                            disableSave: true,
-                            disableUndo: true
-                        }
-                    )
-                    orderShapesRef.current.push(slId)
+            try {
+                // === ENTRY LINE (Position Line) - Solid, with live PnL ===
+                const entryLine = chart.createPositionLine()
+                    .setPrice(trade.entryPrice)
+                    .setText('Entry: ' + formatPrice(trade.entryPrice))
+                    .setQuantity(formatPnl(livePnl))
+                    .setLineColor(isLong ? '#60a5fa' : '#f87171')
+                    .setBodyBackgroundColor(isLong ? '#1e3a5f' : '#5f1e1e')
+                    .setBodyTextColor('#e2e8f0')
+                    .setBodyBorderColor(isLong ? '#3b82f6' : '#ef4444')
+                    .setQuantityBackgroundColor(livePnl >= 0 ? '#166534' : '#991b1b')
+                    .setQuantityTextColor('#ffffff')
+                    .setQuantityBorderColor(livePnl >= 0 ? '#22c55e' : '#ef4444')
+                    .setCloseButtonBackgroundColor('#374151')
+                    .setCloseButtonBorderColor('#6b7280')
+                    .setCloseButtonIconColor('#ffffff')
+                    .setLineLength(25)
+                    .setLineStyle(0)
+                    .setExtendLeft(true)
+                    .setTooltip(trade.side + ' Entry | PnL: ' + formatPnl(livePnl))
+
+                entryLine.onClose(() => {
+                    if (onCloseTrade) onCloseTrade(trade.id)
+                })
+
+                tradeLinesRef.current.push(entryLine)
+
+                // === TAKE PROFIT LINE - Green dashed ===
+                if (trade.takeProfit) {
+                    const tpDiff = isLong
+                        ? (trade.takeProfit - trade.entryPrice)
+                        : (trade.entryPrice - trade.takeProfit)
+                    const tpPnl = tpDiff * qty
+
+                    const tpLine = chart.createOrderLine()
+                        .setPrice(trade.takeProfit)
+                        .setText('TP: ' + formatPrice(trade.takeProfit))
+                        .setQuantity(formatPnl(tpPnl))
+                        .setLineColor('#22c55e')
+                        .setBodyBackgroundColor('#14532d')
+                        .setBodyTextColor('#bbf7d0')
+                        .setBodyBorderColor('#22c55e')
+                        .setQuantityBackgroundColor('#166534')
+                        .setQuantityTextColor('#ffffff')
+                        .setQuantityBorderColor('#22c55e')
+                        .setCancelButtonBackgroundColor('transparent')
+                        .setCancelButtonBorderColor('transparent')
+                        .setCancelButtonIconColor('transparent')
+                        .setLineLength(25)
+                        .setLineStyle(2)
+                        .setExtendLeft(true)
+                        .setTooltip('Take Profit | ' + formatPnl(tpPnl))
+
+                    tradeLinesRef.current.push(tpLine)
                 }
 
-                // Take Profit Line
-                if (trade.takeProfit) {
-                    const tpId = chart.createMultipointShape(
-                        [{ time: latestTime, price: trade.takeProfit }],
-                        {
-                            shape: 'horizontal_line',
-                            overrides: {
-                                linecolor: '#22c55e',
-                                linewidth: 2,
-                                linestyle: 2, // Dashed
-                                showLabel: true,
-                                textcolor: '#22c55e',
-                                horzLabelsAlign: 'right'
-                            },
-                            text: 'TP',
-                            lock: true,
-                            disableSelection: true,
-                            disableSave: true,
-                            disableUndo: true
-                        }
-                    )
-                    orderShapesRef.current.push(tpId)
+                // === STOP LOSS LINE - Red dashed ===
+                if (trade.stopLoss) {
+                    const slDiff = isLong
+                        ? (trade.stopLoss - trade.entryPrice)
+                        : (trade.entryPrice - trade.stopLoss)
+                    const slPnl = slDiff * qty
+
+                    const slLine = chart.createOrderLine()
+                        .setPrice(trade.stopLoss)
+                        .setText('SL: ' + formatPrice(trade.stopLoss))
+                        .setQuantity(formatPnl(slPnl))
+                        .setLineColor('#ef4444')
+                        .setBodyBackgroundColor('#7f1d1d')
+                        .setBodyTextColor('#fca5a5')
+                        .setBodyBorderColor('#ef4444')
+                        .setQuantityBackgroundColor('#991b1b')
+                        .setQuantityTextColor('#ffffff')
+                        .setQuantityBorderColor('#ef4444')
+                        .setCancelButtonBackgroundColor('transparent')
+                        .setCancelButtonBorderColor('transparent')
+                        .setCancelButtonIconColor('transparent')
+                        .setLineLength(25)
+                        .setLineStyle(2)
+                        .setExtendLeft(true)
+                        .setTooltip('Stop Loss | ' + formatPnl(slPnl))
+
+                    tradeLinesRef.current.push(slLine)
                 }
             } catch (e) {
-                console.warn('Failed to create trade shapes:', e)
+                console.warn('[TV Chart] Failed to create trade lines:', e)
             }
         })
 
-        // Cleanup old shapes on unmount
-        return () => {
-            clearShapes()
-        }
-
-    }, [orders, trades, data, JSON.stringify(trades?.map(t => ({ id: t.id, status: t.status })))]) // Re-run when trade statuses change
+        return () => { clearTradeLines() }
+    }, [orders, trades, data, currentPrice, JSON.stringify(trades?.map(t => ({ id: t.id, status: t.status })))]) // Re-run when trade statuses change
 
     return (
         <div className="h-full w-full relative">

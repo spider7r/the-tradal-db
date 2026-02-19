@@ -693,6 +693,18 @@ export function ChartReplayEngine({ initialSession, initialTrades = [] }: ChartR
                         orders={orders}
                         trades={trades}
 
+                        currentPrice={fullData[Math.min(currentIndex, fullData.length - 1)]?.close}
+                        onCloseTrade={(tradeId) => {
+                            if (engineRef.current && fullData.length > 0) {
+                                const currentCandle = fullData[Math.min(currentIndex, fullData.length - 1)]
+                                engineRef.current.manualCloseTrade(tradeId, currentCandle.close)
+                                const stats = engineRef.current.getStats()
+                                setBalance(stats.balance)
+                                setEquity(stats.equity)
+                                setTrades([...engineRef.current.getTrades()])
+                                setOrders([...engineRef.current.getOrders()])
+                            }
+                        }}
                         // We disconnect built-in buttons since we have the floating widget now
                         // But we keep handlers for logical completeness
                         isPlaying={isPlaying}

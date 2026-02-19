@@ -359,6 +359,14 @@ export class BacktestEngine {
         }
     }
 
+
+    // Public: manually close a trade from the chart UI (X button)
+    manualCloseTrade(tradeId: string, price: number) {
+        const trade = this.trades.find(t => t.id === tradeId && t.status === 'OPEN')
+        if (trade) {
+            this.closeTrade(trade, price)
+        }
+    }
     public getTrades(): Trade[] {
         return this.trades
     }
